@@ -200,8 +200,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const METHODS = ["現金","LINE Pay"];
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
-    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, perTerm:4 };
-  const NUMS = ["coachHours","coachRate","venueHours","venueRate","perTerm"];
+    coachHours:2, coachRate:1000, venueHours:3, venueRate:300 };
+  const NUMS = ["coachHours","coachRate","venueHours","venueRate"];
 
   const pad = n => String(n).padStart(2,"0");
   const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -214,7 +214,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const money = n => "NT$" + Number(n||0).toLocaleString("zh-TW");
 
   const S = {
-    tab:"checkin", date:null, term:null,
+    tab:"checkin", date:null, payDate:null,
     members:[], att:{}, pay:{}, settings:{...DEF},
     loaded:{members:false, settings:false},
     online:false, pw:"", canWrite:false, loginOpen:false,
@@ -248,13 +248,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const dis = () => S.canWrite ? "" : " disabled";
   const tagHtml = m => (m.cls && m.cls !== "未分級" ? `<span class="tag">${esc(m.cls)}</span>` : "");
 
-  // 班規提醒：請假、缺席怎麼算
+  // 班規提醒：每堂收費、請假、缺席怎麼算
   const rulesBox = () => `<div class="rules">
-    <b>請假與費用小提醒</b>
+    <b>收費與請假小提醒</b>
     <ul>
-      <li><strong>事先請假</strong>：這週整班一起暫停，不上課、也不收錢，堂數往後延一週。</li>
-      <li><strong>有人請假、其他人還想上</strong>：這堂改成單次課，不算進團課，費用由來上課的人平分。</li>
-      <li><strong>沒請假就缺席</strong>：團課照上，該繳的團課費用一樣要付喔。</li>
+      <li><strong>每堂收費</strong>：上完一堂收一堂，一堂的教練費和場地費由當天要分攤的隊友平分。</li>
+      <li><strong>有人事先請假</strong>：可以選「整班暫停」，這週不上課、也不收錢；或選「其他人照上」，由沒請假的人平分這堂。</li>
+      <li><strong>沒請假就缺席</strong>：課照上，這堂該分攤的費用一樣要付喔。</li>
     </ul>
   </div>`;
 
@@ -270,57 +270,44 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const r = (S.att[d] && S.att[d].records) || {};
     return Object.keys(r).filter(id => r[id] === "leave").map(nameOf);
   }
-  // 從開課日起每週一次；有人請假的那週暫停、不算堂數，後面順延。點名過的非固定日期（補課）也算一堂。
+  // 從開課日起每週一次，排到今天之後 8 週；點名過的非固定日期（補課）也算一堂
   function schedule(){
     const start = S.settings.start || today();
-    const per = Math.max(1, Number(S.settings.perTerm) || 4);
-    const t = today();
-    const extra = Object.keys(S.att).filter(d => d >= start && Object.keys(S.att[d].records || {}).length).sort();
-    const out = [], seen = new Set();
-    let w = start, ei = 0, k = 0, stopAt = null, guard = 0;
-    while(guard++ < 1000){
-      let d;
-      if(ei < extra.length && extra[ei] <= w){ d = extra[ei++]; }
-      else { d = w; w = shiftDate(w, 7); }
-      if(seen.has(d)) continue;
-      seen.add(d);
-      const item = { date:d, status:statusOf(d) };
-      if(item.status !== "paused" && item.status !== "single"){ k++; item.n = k; item.term = Math.ceil(k/per); item.idx = (k-1) % per + 1; }
-      out.push(item);
-      if(stopAt === null && d >= t && item.n) stopAt = (item.term + 1) * per;
-      if(stopAt !== null && k >= stopAt && ei >= extra.length) break;
-    }
-    // 暫停週、單次課不算堂數，歸到下一堂所屬的那一期（後面沒有就歸前一期）
-    let nextTerm = null;
-    for(let j = out.length - 1; j >= 0; j--){ if(out[j].term) nextTerm = out[j].term; else out[j].near = nextTerm; }
-    let prevTerm = null;
-    out.forEach(i => { if(i.term) prevTerm = i.term; else if(i.near == null) i.near = prevTerm || 1; });
-    return out;
+    const until = shiftDate(today() > start ? today() : start, 56);
+    const extra = Object.keys(S.att).filter(d => d >= start && Object.keys(S.att[d].records || {}).length);
+    const set = new Set(extra);
+    for(let w = start, g = 0; w <= until && g < 600; w = shiftDate(w, 7), g++) set.add(w);
+    return [...set].sort().map(d => ({ date: d, status: statusOf(d) }));
   }
-  const termOf = i => i.term || i.near;
-  // 單次課：有人請假、其他人照上。沒請假的人就是來上課的人，費用由他們平分
-  function singleInfo(d){
+  const billable = st => st !== "paused";
+  // 這堂要分攤的人：沒請假的學員（整班暫停就沒有人要付）
+  function classInfo(d){
+    const st = statusOf(d);
     const r = (S.att[d] && S.att[d].records) || {};
-    const ids = players().filter(m => r[m.id] !== "leave").map(m => m.id);
+    const ids = billable(st) ? players().filter(m => r[m.id] !== "leave").map(m => m.id) : [];
     const n = ids.length;
-    return { ids, n, pp: n ? Math.ceil(fees().session / n) : 0 };
+    return { st, ids, n, pp: n ? Math.ceil(fees().session / n) : 0 };
   }
-  function currentTerm(sch){
-    const t = today();
-    const next = sch.find(i => i.date >= t && i.n);
-    return next ? next.term : 1;
-  }
+  const payKey = d => "class-" + d;
+  const paidRec = (d, id) => ((S.pay[payKey(d)] || {}).records || {})[id];
   function nextClassDate(sch){
     const t = today();
     const next = sch.find(i => i.date >= t);
     return next ? next.date : (S.settings.start || t);
+  }
+  // 已經上過、還有人沒繳的課
+  function owedBy(m, sch){
+    const t = today();
+    return sch.filter(i => i.date <= t && i.date >= S.settings.start && billable(i.status) && i.status !== "planned")
+      .filter(i => classInfo(i.date).ids.includes(m.id) && !paidRec(i.date, m.id))
+      .map(i => i.date);
   }
   function fees(){
     const s = S.settings;
     const coach = s.coachHours * s.coachRate, venue = s.venueHours * s.venueRate;
     const session = coach + venue, n = players().length;
     const pp = n ? Math.ceil(session / n) : 0;
-    return { coach, venue, session, n, pp, per:s.perTerm, term: pp * s.perTerm, exact: n ? session % n === 0 : true };
+    return { coach, venue, session, n, pp, exact: n ? session % n === 0 : true };
   }
   function feeCard(){
     const f = fees(), s = S.settings;
@@ -330,14 +317,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <tr><td>教練費</td><td>${s.coachHours} 小時 × ${money(s.coachRate)}</td><td>${money(f.coach)}</td></tr>
         <tr><td>場地費</td><td>${s.venueHours} 小時 × ${money(s.venueRate)}</td><td>${money(f.venue)}</td></tr>
         <tr class="total"><td>一堂總共</td><td></td><td>${money(f.session)}</td></tr>
-        <tr><td>每人每堂</td><td>${f.n} 位隊友平分</td><td>${money(f.pp)}</td></tr>
-        <tr class="total big"><td>每人每期</td><td>× ${f.per} 堂</td><td>${money(f.term)}</td></tr>
+        <tr class="total big"><td>每人每堂</td><td>${f.n} 位隊友平分</td><td>${money(f.pp)}</td></tr>
       </table>
       <ul class="notes">
-        <li>教練費和場地費由大家平分。</li>
-        <li><strong>事先請假</strong>的那週整班暫停，不上課也不收錢，不算進這一期。</li>
-        <li>有人請假但其他人想照上的話，那堂改成<strong>單次課</strong>：一堂 ${money(f.session)} 由沒請假、來上課的人平分，另外收，不算進團課。</li>
-        <li><strong>沒請假就缺席</strong>的話，課照上，費用一樣要付。</li>
+        <li><strong>每堂收費</strong>，上一堂收一堂，不用先繳一整期。</li>
+        <li><strong>事先請假</strong>選「整班暫停」：這週不上課、不收錢。</li>
+        <li>有人請假但其他人<strong>照上</strong>：一堂 ${money(f.session)} 由沒請假的人平分，例如 3 人上課每人 ${money(Math.ceil(f.session / 3))}。</li>
+        <li><strong>沒請假就缺席</strong>：照樣要分攤這堂費用。</li>
         <li>隊友人數有變動時，金額會自動重算；已經收的錢不會跟著改。</li>
         ${f.exact ? "" : "<li>除不盡的零頭，進位到整數元。</li>"}
       </ul>
@@ -385,7 +371,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     if(!S.loaded.members){ app.innerHTML = `<div class="empty"><b>名單載入中…</b>馬上就好，請稍等一下。</div>`; return; }
     const sch = schedule();
     if(!S.date) S.date = nextClassDate(sch);
-    if(!S.term) S.term = currentTerm(sch);
+    if(!S.payDate) S.payDate = nextClassDate(sch);
     app.innerHTML = ({checkin:viewCheckin, pay:viewPay, stats:viewStats, members:viewMembers})[S.tab](sch);
   }
 
@@ -393,32 +379,27 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     return `<div class="empty"><b>還沒有隊友喔</b>先到「隊友」把大家加進來，就能開始點名、記帳了。<div style="margin-top:14px"><button class="btn primary" data-act="goto" data-tab="members">去加隊友</button></div></div>`;
   }
 
-  // 有人請假時：整班暫停，或其他人照上（單次計費）
+  // 有人請假時：整班暫停，或其他人照上
   const modeSwitch = cur => !S.canWrite ? "" : `<div class="field"><span>有人請假，這週要怎麼辦？</span>
     <div class="seg two" role="group" aria-label="有人請假時這週怎麼辦">
       <button data-act="mode" data-v="paused" aria-pressed="${cur==="paused"}"${dis()}>整班暫停</button>
-      <button data-act="mode" data-v="single" aria-pressed="${cur==="single"}"${dis()}>其他人照上（單次計費）</button>
+      <button data-act="mode" data-v="single" aria-pressed="${cur==="single"}"${dis()}>其他人照上</button>
     </div></div>`;
+
+  // 一堂課的說明橫幅（點名、繳費共用）
+  function classBanner(d, withSwitch){
+    const ci = classInfo(d), f = fees();
+    if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
+    if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + (withSwitch ? modeSwitch("paused") : "");
+    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + (withSwitch ? modeSwitch("single") : "");
+    return `<div class="banner ok">這堂每人 ${money(ci.pp)}<small>一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分。有人請假就點「請假」，再選整班暫停或其他人照上。</small></div>`;
+  }
 
   // 點名
   function viewCheckin(sch){
     const list = active();
     const rec = (S.att[S.date] && S.att[S.date].records) || {};
-    const item = sch.find(i => i.date === S.date);
-    const per = S.settings.perTerm;
-    let banner;
-    if(S.date < S.settings.start){
-      banner = `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}。這天的點名會留著，但不算在任何一期裡。</small></div>`;
-    } else if(item && item.status === "paused"){
-      banner = `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(S.date).join("、"))} 請假，這週不上課、不收錢，堂數往後延一週。</small></div>` + modeSwitch("paused");
-    } else if(item && item.status === "single"){
-      const si = singleInfo(S.date);
-      banner = `<div class="banner ok">這週改上單次課<small>${esc(leaversOf(S.date).join("、"))} 請假，其他人照常上課。這堂不算進團課，一堂 ${money(fees().session)} 由 ${si.n} 位上課的隊友平分，每人 ${money(si.pp)}。</small></div>` + modeSwitch("single");
-    } else if(item && item.n){
-      banner = `<div class="banner ok">第 ${item.term} 期・第 ${item.idx} 堂<small>一期 ${per} 堂。有人請假就點「請假」，再選整班暫停或其他人照上。</small></div>`;
-    } else {
-      banner = `<div class="banner mute">這天不是固定上課日<small>如果是補課，點「出席」就會算一堂。</small></div>`;
-    }
+    const st = statusOf(S.date);
     const c = {present:0, leave:0, absent:0};
     list.forEach(m => { if(c[rec[m.id]] !== undefined) c[rec[m.id]]++; });
     const unmarked = list.length - c.present - c.leave - c.absent;
@@ -429,7 +410,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <button class="nav" data-act="date" data-n="1" aria-label="下一次上課">›</button>
       </div>
       ${S.date !== nextClassDate(sch) ? `<div><button class="link" data-act="date-next">回到最近一次上課</button></div>` : ""}
-      ${banner}`;
+      ${classBanner(S.date, true)}`;
     if(!list.length) return h + noMembers();
     h += `
       <div class="summary">
@@ -438,14 +419,14 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat bad"><b>${c.absent}</b><span>缺席</span></div>
         <div class="stat"><b>${unmarked}</b><span>還沒點</span></div>
       </div>
-      ${unmarked && (!c.leave || (item && item.status === "single")) ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
+      ${unmarked && (!c.leave || st === "single") ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
       <ul class="list">` +
       list.map(m => {
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
           <div class="seg" role="group" aria-label="${esc(m.name)} 的出席狀態">
-            ${(item && item.status === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${dis()}>${ST[k]}</button>`).join("")}
+            ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
       <p class="muted">點一下就存好了；點錯的話，再點一次同一個按鈕就能取消。</p>
@@ -453,73 +434,51 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     return h;
   }
 
-  // 繳費（每期）
-  function termRange(sch, n){
-    const d = sch.filter(i => i.term === n);
-    return d.length ? `${md(d[0].date)}–${md(d[d.length-1].date)}` : "";
-  }
+  // 繳費（每堂）
   function viewPay(sch){
-    const list = players();
-    const f = fees();
-    const key = "term-" + S.term;
+    const d = S.payDate, ci = classInfo(d);
+    const key = payKey(d);
     const rec = (S.pay[key] && S.pay[key].records) || {};
-    const lastTerm = Math.max(...sch.filter(i => i.term).map(i => i.term), 1);
-    const inTerm = sch.filter(i => termOf(i) === S.term);
-    const pill = i => i.status === "paused" ? `<span class="pill bad">暫停</span>` : i.status === "single" ? `<span class="pill warn">單次課</span>` : i.status === "held" ? `<span class="pill ok">上過了</span>` : i.status === "unmarked" ? `<span class="pill warn">還沒點名</span>` : `<span class="pill mute">預定</span>`;
     let h = `
       <div class="bar">
-        <button class="nav" data-act="term" data-n="-1" aria-label="上一期"${S.term <= 1 ? " disabled" : ""}>‹</button>
-        <div class="picker static"><span>第 ${S.term} 期　${termRange(sch, S.term)}</span></div>
-        <button class="nav" data-act="term" data-n="1" aria-label="下一期"${S.term >= lastTerm ? " disabled" : ""}>›</button>
+        <button class="nav" data-act="paydate" data-n="-1" aria-label="上一堂">‹</button>
+        <label class="picker"><span>${labelDate(d)} 這堂</span><input type="date" id="payDatePick" value="${d}" aria-label="選擇哪一堂"></label>
+        <button class="nav" data-act="paydate" data-n="1" aria-label="下一堂">›</button>
       </div>
-      <div class="card">
-        <h2>第 ${S.term} 期上課日</h2>
-        <div class="dates">${inTerm.map(i => `<div class="date"><b>${md(i.date)}（${WD[new Date(i.date.replace(/-/g,"/")).getDay()]}）</b>${pill(i)}</div>`).join("")}</div>
-        <p class="muted">日期是預估的。有人請假那週會暫停，最後一堂就往後延一週。</p>
-      </div>`;
-    if(!list.length) return h + noMembers();
-    const paid = list.filter(m => rec[m.id]);
-    const unpaid = list.filter(m => !rec[m.id]);
-    const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
-    h += `
-      <div class="summary">
-        <div class="stat"><b>${money(f.term)}</b><span>這期每人要繳</span></div>
-        <div class="stat ok"><b>${paid.length}</b><span>已繳</span></div>
-        <div class="stat bad"><b>${unpaid.length}</b><span>還沒繳</span></div>
-        <div class="stat"><b>${money(total)}</b><span>這期收到</span></div>
-      </div>`;
-    if(unpaid.length){
-      h += `<div class="card"><h2>第 ${S.term} 期還沒繳的隊友</h2>
-        <div class="chips">${unpaid.map(m => `<span class="pill bad">${esc(m.name)}</span>`).join("")}</div>
-        <div class="actions"><button class="btn small" data-act="copy-unpaid">複製催繳訊息，貼到 LINE</button></div></div>`;
-    } else {
-      h += `<div class="banner ok">第 ${S.term} 期大家都繳清了，辛苦了！</div>`;
+      ${d !== nextClassDate(sch) ? `<div><button class="link" data-act="paydate-next">回到最近一堂</button></div>` : ""}
+      ${classBanner(d, false)}`;
+    if(!players().length) return h + noMembers();
+    if(ci.n && d >= S.settings.start){
+      const who = players().filter(m => ci.ids.includes(m.id));
+      const paid = who.filter(m => rec[m.id]);
+      const unpaid = who.filter(m => !rec[m.id]);
+      const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
+      h += `
+        <div class="summary">
+          <div class="stat"><b>${money(ci.pp)}</b><span>這堂每人要繳</span></div>
+          <div class="stat ok"><b>${paid.length}</b><span>已繳</span></div>
+          <div class="stat bad"><b>${unpaid.length}</b><span>還沒繳</span></div>
+          <div class="stat"><b>${money(total)}</b><span>這堂收到</span></div>
+        </div>
+        ${unpaid.length ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製這堂的收費訊息，貼到 LINE</button></div>` : `<div class="banner ok">這堂大家都繳清了，辛苦了！</div>`}
+        ${payList(key, who, ci.pp)}`;
     }
-    h += payList(key, list, f.term);
-    const singles = inTerm.filter(i => i.status === "single");
-    if(singles.length){
-      h += `<h3>這期的單次課（另外收，不算團課）</h3>` + singles.map(i => {
-        const si = singleInfo(i.date), skey = "single-" + i.date;
-        const who = players().filter(m => si.ids.includes(m.id));
-        return `<div class="card">
-          <h2>${labelDate(i.date)} 單次課</h2>
-          <p class="muted">${esc(leaversOf(i.date).join("、"))} 請假，${si.n} 人上課。一堂 ${money(fees().session)} ÷ ${si.n} 人＝每人 <strong>${money(si.pp)}</strong>。</p>
-          ${who.length ? payList(skey, who, si.pp) : `<p class="muted">這堂大家都請假了，沒有人要繳。</p>`}
-          ${who.length ? `<div class="actions"><button class="btn small" data-act="copy-single" data-date="${i.date}">複製這堂的收費訊息</button></div>` : ""}
-        </div>`;
-      }).join("");
-    }
+    // 累計欠費：所有已經上過、還沒繳的課
+    const owing = players().map(m => ({ m, ds: owedBy(m, sch) })).filter(x => x.ds.length);
+    h += `<div class="card"><h2>累計還沒繳的費用</h2>` + (owing.length
+      ? `<ul class="list">${owing.map(x => `<li class="row"><div class="who"><b>${esc(x.m.name)}</b>${tagHtml(x.m)}<span class="sub">${x.ds.length} 堂・約 ${money(x.ds.reduce((a, dd) => a + classInfo(dd).pp, 0))}</span></div><div class="chips">${x.ds.map(dd => `<button class="pill warn" data-act="paydate-go" data-date="${dd}">${md(dd)}</button>`).join("")}</div></li>`).join("")}</ul>
+         <div class="actions"><button class="btn small" data-act="copy-owed">複製欠費提醒，貼到 LINE</button></div>
+         <p class="muted">點日期可以跳到那一堂記收款。</p>`
+      : `<p class="muted">目前沒有人欠費 👍</p>`) + `</div>`;
     h += rulesBox() + feeCard();
     return h;
   }
 
-  // 繳費文件：term-<期數> 或 single-<日期>
-  function payDoc(key, records){
-    return key.startsWith("single-") ? { date: key.slice(7), records } : { term: Number(key.slice(5)), records };
-  }
-  const payLabel = key => key.startsWith("single-") ? `${md(key.slice(7))} 單次課` : `第 ${key.slice(5)} 期`;
+  // 繳費文件：class-<日期>
+  const payDoc = (key, records) => ({ date: key.slice(6), records });
+  const payLabel = key => `${md(key.slice(6))} 那堂`;
 
-  // 一份繳費名單（團課每期或單次課共用）
+  // 一份繳費名單
   function payList(key, list, defAmt){
     const rec = (S.pay[key] && S.pay[key].records) || {};
     return `<ul class="list">` + list.map(m => {
@@ -558,15 +517,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const list = active();
     if(!list.length) return noMembers();
     const t = today();
-    const startedTerms = [...new Set(sch.filter(i => i.term && i.date <= t).map(i => i.term))];
-    const held = sch.filter(i => i.status === "held").length;
-    const paused = sch.filter(i => i.status === "paused" && i.date <= t);
-    const singles = sch.filter(i => i.status === "single" && i.date <= t);
+    const past = sch.filter(i => i.date <= t && i.date >= S.settings.start);
+    const held = past.filter(i => i.status === "held" || i.status === "single").length;
+    const paused = past.filter(i => i.status === "paused");
     const rows = list.map(m => {
       let p=0, l=0, a=0;
       Object.keys(S.att).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
-      const owed = startedTerms.filter(n => !((S.pay["term-"+n]||{}).records||{})[m.id]).map(n => `第 ${n} 期`)
-        .concat(singles.filter(i => singleInfo(i.date).ids.includes(m.id) && !((S.pay["single-"+i.date]||{}).records||{})[m.id]).map(i => `${md(i.date)} 單次課`));
+      const owed = m.role === "coach" ? [] : owedBy(m, sch);
       return {m, p, l, a, owed};
     });
     const owing = rows.filter(r => r.owed.length).length;
@@ -574,18 +531,17 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <div class="summary">
         <div class="stat ok"><b>${held}</b><span>已經上了幾堂</span></div>
         <div class="stat warn"><b>${paused.length}</b><span>請假暫停幾週</span></div>
-        <div class="stat"><b>${singles.length}</b><span>改上單次課幾次</span></div>
         <div class="stat bad"><b>${owing}</b><span>有欠費的隊友</span></div>
       </div>
       <div class="tablewrap"><table>
-        <thead><tr><th>姓名</th><th class="num">出席</th><th class="num">請假</th><th class="num">缺席</th><th>還沒繳的費用</th></tr></thead>
+        <thead><tr><th>姓名</th><th class="num">出席</th><th class="num">請假</th><th class="num">缺席</th><th>還沒繳的堂</th></tr></thead>
         <tbody>${rows.map(r => `<tr>
           <td><b>${esc(r.m.name)}</b> ${tagHtml(r.m)}</td>
           <td class="num">${r.p}</td><td class="num">${r.l}</td><td class="num">${r.a}</td>
-          <td>${r.owed.length ? `<div class="chips">${r.owed.map(x => `<span class="pill warn">${x}</span>`).join("")}</div>` : `<span class="pill ok">都繳清了</span>`}</td>
+          <td>${r.owed.length ? `<div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>` : `<span class="pill ok">都繳清了</span>`}</td>
         </tr>`).join("")}</tbody>
       </table></div>
-      <p class="muted">團課只算已經開始上課的期別；單次課只算沒請假、來上課的人。</p>
+      <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
       ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
   }
 
@@ -622,7 +578,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <div class="summary">
         <div class="stat"><b>${f.n}</b><span>隊友人數</span></div>
         <div class="stat"><b>${money(f.pp)}</b><span>每人每堂</span></div>
-        <div class="stat"><b>${money(f.term)}</b><span>每人每期（${s.perTerm} 堂）</span></div>
+        <div class="stat"><b>${money(f.session)}</b><span>一堂總共</span></div>
       </div>
       ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list">${on.map(row).join("")}</ul><p class="muted">排序：先看分級，同分級再照姓名筆畫。</p>` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
       ${!S.canWrite ? "" : `<div class="card">
@@ -644,7 +600,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <label class="field"><span>地點</span><input id="set_location" value="${v("set_location", s.location)}"${dis()}></label>
           <label class="field"><span>上課時間</span><input id="set_time" value="${v("set_time", s.time)}"${dis()}></label>
           <label class="field"><span>第一堂是哪天</span><input id="set_start" type="date" value="${v("set_start", s.start)}"${dis()}></label>
-          <label class="field"><span>一期幾堂</span><input id="set_perTerm" type="number" inputmode="numeric" min="1" value="${v("set_perTerm", s.perTerm)}"${dis()}></label>
           <label class="field"><span>教練課幾小時（每堂）</span><input id="set_coachHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_coachHours", s.coachHours)}"${dis()}></label>
           <label class="field"><span>教練費（每小時）</span><input id="set_coachRate" type="number" inputmode="numeric" min="0" value="${v("set_coachRate", s.coachRate)}"${dis()}></label>
           <label class="field"><span>場地租幾小時（每堂）</span><input id="set_venueHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_venueHours", s.venueHours)}"${dis()}></label>
@@ -664,6 +619,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   app.addEventListener("change", e => {
     const t = e.target;
     if(t.id === "datePick" && t.value){ S.date = t.value; render(); }
+    else if(t.id === "payDatePick" && t.value){ S.payDate = t.value; S.payOpen = S.payConfirm = null; render(); }
     else if(t.id) S.draft[t.id] = t.value;
   });
 
@@ -682,7 +638,16 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         render(); break;
       }
       case "date-next": S.date = nextClassDate(schedule()); render(); break;
-      case "term": S.term = Math.max(1, S.term + (+b.dataset.n)); S.payOpen = S.payConfirm = null; render(); break;
+      case "paydate": {
+        const dates = schedule().map(i => i.date);
+        const n = +b.dataset.n, i = dates.indexOf(S.payDate);
+        if(i >= 0 && dates[i+n]) S.payDate = dates[i+n];
+        else if(i < 0){ const nb = n > 0 ? dates.find(d => d > S.payDate) : [...dates].reverse().find(d => d < S.payDate); S.payDate = nb || shiftDate(S.payDate, 7*n); }
+        else S.payDate = shiftDate(S.payDate, 7*n);
+        S.payOpen = S.payConfirm = null; render(); break;
+      }
+      case "paydate-next": S.payDate = nextClassDate(schedule()); S.payOpen = S.payConfirm = null; render(); break;
+      case "paydate-go": S.payDate = b.dataset.date; S.payOpen = S.payConfirm = null; render(); window.scrollTo(0,0); break;
 
       case "att": {
         const date = S.date, s = b.dataset.s;
@@ -696,7 +661,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         S.att[date] = doc;
         render();
         write("attendance/"+date, save("attendance", date, doc));
-        if(hasLeave && !hadLeave) toast(mode === "single" ? "已記請假，這週還是單次課" : "有人請假，這週先暫停（也可以改成單次課）");
+        if(hasLeave && !hadLeave) toast(mode === "single" ? "已記請假，其他人照上" : "有人請假，這週先暫停（也可以改成其他人照上）");
         else if(!hasLeave && hadLeave) toast("沒人請假了，這週照常上團課");
         break;
       }
@@ -705,7 +670,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         const doc = { date, records: { ...((S.att[date] && S.att[date].records) || {}) }, mode: v };
         S.att[date] = doc; render();
         write("attendance/"+date, save("attendance", date, doc));
-        toast(v === "single" ? "改成單次課，費用由來上課的人平分" : "改回整班暫停，這週不收費");
+        toast(v === "single" ? "其他人照上，費用由沒請假的人平分" : "改回整班暫停，這週不收費");
         break;
       }
       case "all-present": {
@@ -747,29 +712,28 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         toast("這筆紀錄取消了");
         break;
       }
-      case "copy-single": {
-        const d = b.dataset.date, si = singleInfo(d);
-        const rec = (S.pay["single-"+d] && S.pay["single-"+d].records) || {};
-        const who = players().filter(m => si.ids.includes(m.id));
-        const unpaid = who.filter(m => !rec[m.id]).map(m => m.name);
-        const text = `【${S.settings.group}】${labelDate(d)} 單次課\n${leaversOf(d).join("、")} 請假，其他 ${si.n} 位照常上課。這堂不算團課，一堂 ${money(fees().session)} 大家平分，每人 ${money(si.pp)}。\n` +
-          (unpaid.length ? `還沒繳的隊友：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家都繳清了，謝謝！`);
-        try { await navigator.clipboard.writeText(text); toast("複製好了，可以貼到 LINE 囉"); }
-        catch(_) {
-          const card = b.closest(".card"); const ta = document.createElement("textarea");
-          ta.value = text; ta.rows = 5; ta.style.width = "100%"; card.appendChild(ta); ta.select(); toast("請長按選取文字再複製");
+      case "copy-class":
+      case "copy-owed": {
+        let text;
+        if(act === "copy-class"){
+          const d = b.dataset.date, ci = classInfo(d);
+          const rec = (S.pay[payKey(d)] && S.pay[payKey(d)].records) || {};
+          const unpaid = players().filter(m => ci.ids.includes(m.id) && !rec[m.id]).map(m => m.name);
+          const leave = leaversOf(d);
+          text = `【${S.settings.group}】${labelDate(d)} 這堂費用\n` +
+            (leave.length ? `${leave.join("、")} 請假，其他 ${ci.n} 位照常上課。` : "") +
+            `一堂 ${money(fees().session)} 由 ${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
+            (unpaid.length ? `還沒繳的隊友：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家都繳清了，謝謝！`);
+        } else {
+          const sch = schedule();
+          const lines = players().map(m => ({ m, ds: owedBy(m, sch) })).filter(x => x.ds.length)
+            .map(x => `・${x.m.name}：${x.ds.map(md).join("、")}（共 ${money(x.ds.reduce((a, dd) => a + classInfo(dd).pp, 0))}）`);
+          text = `【${S.settings.group}】還沒繳的課費\n${lines.join("\n")}\n再麻煩大家囉，謝謝！`;
         }
-        break;
-      }
-      case "copy-unpaid": {
-        const sch = schedule(), f = fees();
-        const rec = (S.pay["term-"+S.term] && S.pay["term-"+S.term].records) || {};
-        const names = players().filter(m => !rec[m.id]).map(m => m.name);
-        const text = `【${S.settings.group}】第 ${S.term} 期（${termRange(sch, S.term)}，共 ${S.settings.perTerm} 堂）每人 ${money(f.term)}（一堂 ${money(f.pp)}）。\n還沒繳費的隊友：${names.join("、")}，再麻煩大家囉，謝謝！\n小提醒：事先請假整班會暫停、不收費；有人請假但其他人想上，就改成單次課、來上課的人平分；沒請假就缺席的話，費用還是要繳喔。`;
         try { await navigator.clipboard.writeText(text); toast("複製好了，可以貼到 LINE 囉"); }
         catch(_) {
-          const card = b.closest(".card"); const ta = document.createElement("textarea");
-          ta.value = text; ta.rows = 5; ta.style.width = "100%"; card.appendChild(ta); ta.select(); toast("請長按選取文字再複製");
+          const box = b.closest(".card") || b.parentElement; const ta = document.createElement("textarea");
+          ta.value = text; ta.rows = 5; ta.style.width = "100%"; box.appendChild(ta); ta.select(); toast("請長按選取文字再複製");
         }
         break;
       }
@@ -827,10 +791,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         ["group","location","time","start"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
         NUMS.forEach(k => { const n = Number(document.getElementById("set_"+k).value); next[k] = n >= 0 ? n : DEF[k]; });
         if(!next.start) next.start = DEF.start;
-        if(next.perTerm < 1) next.perTerm = 1;
+        delete next.perTerm;
         S.settings = next;
         Object.keys(S.draft).filter(k => k.startsWith("set_")).forEach(k => delete S.draft[k]);
-        S.date = null; S.term = null; render();
+        S.date = null; S.payDate = null; render();
         write("settings/main", save("settings", "main", next));
         toast("設定存好了，費用已重算");
         break;
@@ -855,7 +819,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         S.settings = next;
       }
       S.loaded.members = S.loaded.settings = true;
-      if(first){ S.date = null; S.term = null; }
+      if(first){ S.date = null; S.payDate = null; }
       if(noticeEl.textContent.startsWith("暫時連不上")) notice("");
       scheduleRender();
     } catch(e){
