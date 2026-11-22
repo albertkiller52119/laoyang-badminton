@@ -480,9 +480,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <div class="summary">
         <div class="stat ok"><b>${c.present}</b><span>出席</span></div>
         <div class="stat warn"><b>${c.leave}</b><span>請假</span></div>
-        <div class="stat bad"><b>${c.absent}</b><span>缺席</span></div>
-        <div class="stat"><b>${unmarked}</b><span>還沒點</span></div>
-      </div>
+        <div class="stat bad"><b>${c.absent}</b><span>缺席</span></div>      </div>
       ${S.canWrite && unmarked && (!c.leave || st === "single") ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
       <ul class="list">` +
       list.map(m => {
