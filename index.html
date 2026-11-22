@@ -518,6 +518,9 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       const mustPay = who.filter(m => !selfSettled(m, d));
       const paid = mustPay.filter(m => rec[m.id]);
       const unpaid = mustPay.filter(m => !rec[m.id]);
+      // 財務、場地負責人不用轉課費，另外列在下面（財務在前）
+      const special = who.filter(m => !mustPay.includes(m) && !rec[m.id]).sort((a, b) => isTreasurer(b) - isTreasurer(a));
+      const listed = [...unpaid, ...paid, ...who.filter(m => !mustPay.includes(m) && rec[m.id])];
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
         <div class="summary">
@@ -525,9 +528,11 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <div class="stat ok"><b>${paid.length}</b><span>已經轉給${esc(trName())}</span></div>
           <div class="stat bad"><b>${unpaid.length}</b><span>還沒轉</span></div>
         </div>
-        ${flowCard(d, fl)}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
-        ${payList(key, who, ci.pp, d)}`;
+        <h3>隊友課費（還沒轉的排前面）</h3>
+        ${payList(key, listed, ci.pp, d)}
+        ${special.length ? `<h3>${special.map(m => esc(m.name)).join("・")} 收付情況</h3>${payList(key, special, ci.pp, d)}` : ""}
+        ${flowCard(d, fl)}`;
     }
     h += rulesBox();
     return h;
