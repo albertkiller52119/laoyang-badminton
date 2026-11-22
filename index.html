@@ -957,7 +957,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     if(S.canWrite){
       adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定</span><button class="btn small" id="logoutBtn">登出</button></div>`;
     } else if(S.loginOpen){
-      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="current-password"></label><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button></form>`;
+      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。請按「顯示」確認打的字：數字和英文要用半形，也要注意瀏覽器是不是自動帶入了舊密碼。</span></form>`;
       setTimeout(() => { const el = document.getElementById("pwInput"); if(el) el.focus(); }, 0);
     } else {
       adminBar.innerHTML = `<div class="admin"><span>目前是查看模式，大家都能看。</span><button class="btn small" id="loginBtn">管理員登入</button></div>`;
@@ -966,6 +966,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   adminBar.addEventListener("click", e => {
     if(e.target.id === "loginBtn"){ S.loginOpen = true; renderAdminBar(); }
     else if(e.target.id === "loginCancel"){ S.loginOpen = false; renderAdminBar(); }
+    else if(e.target.id === "pwShow"){
+      const el = document.getElementById("pwInput"), show = el.type === "password";
+      el.type = show ? "text" : "password"; e.target.textContent = show ? "隱藏" : "顯示"; el.focus();
+    }
     else if(e.target.id === "logoutBtn"){
       S.pw = ""; S.canWrite = false; S.loginOpen = false;
       try { localStorage.removeItem("ylAdminPw"); } catch(_){}
@@ -974,15 +978,19 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   });
   adminBar.addEventListener("submit", async e => {
     e.preventDefault();
-    const pw = document.getElementById("pwInput").value;
+    // 中文輸入法常打出全形數字或多一個空白，先轉成半形、去掉前後空白
+    const pw = document.getElementById("pwInput").value.normalize("NFKC").trim();
     if(!pw){ toast("請輸入密碼"); return; }
     try {
       if(await gs("checkPassword", pw)){
         S.pw = pw; S.canWrite = true; S.loginOpen = false;
         try { localStorage.setItem("ylAdminPw", pw); } catch(_){}
         renderAdminBar(); render(); toast("登入成功，可以開始點名了");
-      } else toast("密碼不對，再試一次");
-    } catch(err){ toast(String(err && err.message || err).slice(0, 60)); }
+      } else {
+        toast("密碼不對，再試一次");
+        const h = document.getElementById("pwHint"); if(h) h.hidden = false;
+      }
+    } catch(err){ toast("連不上資料，請檢查網路後重新整理頁面"); }
   });
 
   render();
