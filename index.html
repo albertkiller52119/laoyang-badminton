@@ -323,11 +323,12 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   function flowOf(d){
     const ci = classInfo(d), f = fees();
     const vp = venuePayerOf(), tr = treasurerOf();
-    if(!ci.n || !vp) return { ci, vp: null, tr, venue: f.venue, coach: f.coach };
+    const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || null;   // 財務付給教練的紀錄
+    if(!ci.n || !vp) return { ci, vp: null, tr, venue: f.venue, coach: f.coach, coachPaid };
     const vpShare = ci.ids.includes(vp.id) ? ci.pp : 0;
     const net = f.venue - vpShare;   // >0：財務要匯給訂場地的人；<0：訂場地的人要補給財務
     const reimb = (S.pay[payKey(d)] || {}).reimb || null;
-    return { ci, vp, tr, venue: f.venue, coach: f.coach, vpShare, net, reimb };
+    return { ci, vp, tr, venue: f.venue, coach: f.coach, vpShare, net, reimb, coachPaid };
   }
   // 訂場地的人這堂不用另外繳（課費已從代墊的場地費扣掉）
   const settledByVenue = (m, d) => { const fl = flowOf(d); return !!fl.vp && fl.vp.id === m.id && fl.net >= 0; };
@@ -343,6 +344,12 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   }
   // 財務還沒匯還給訂場地的人的課
   const reimbOwed = sch => pastClasses(sch).map(i => ({ d: i.date, fl: flowOf(i.date) })).filter(x => x.fl.vp && x.fl.net > 0 && !x.fl.reimb);
+  // 財務還沒付給教練的課
+  const coachOwed = sch => pastClasses(sch).map(i => ({ d: i.date, fl: flowOf(i.date) })).filter(x => x.fl.ci.n && !x.fl.coachPaid);
+  // 「記下已付款」的小按鈕組：選付款方式＋記下；已付就顯示紀錄和取消
+  const paidControl = (done, d, kind, draftKey, label) => done
+    ? `<br><span class="pill ok">已付款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="${kind}-undo" data-date="${d}">取消紀錄</button>` : ""}`
+    : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft[draftKey] || "LINE Pay") ? " primary" : ""}" data-act="${kind}-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="${kind}-save" data-date="${d}">${label}</button></div>` : `<br><span class="pill bad">還沒付</span>`);
   function fees(){
     const s = S.settings;
     const coach = s.coachHours * s.coachRate, venue = s.venueHours * s.venueRate;
@@ -524,6 +531,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
            <p class="muted">這是 ${esc(vpName())} 先幫忙付的場地費，扣掉他自己的課費後要還他的錢。匯完後點日期，到那一堂按「記下已匯款」。</p>`
         : `<p class="muted">都匯清了，沒有欠 ${esc(vpName())} 的錢 👍</p>`) + `</div>`;
     }
+    // 財務還沒付給教練的
+    const co = coachOwed(sch);
+    h += `<div class="card"><h2>${esc(trName())} 還要匯給教練</h2>` + (co.length
+      ? `<p class="big-money">${money(co.reduce((a, x) => a + x.fl.coach, 0))}</p>
+         <div class="chips">${co.map(x => `<button class="pill warn" data-act="paydate-go" data-date="${x.d}">${md(x.d)}・${money(x.fl.coach)}</button>`).join("")}</div>
+         <p class="muted">匯完後點日期，到那一堂按「記下已付教練費」。</p>`
+      : `<p class="muted">教練費都付清了 👍</p>`) + `</div>`;
     h += rulesBox() + feeCard();
     return h;
   }
@@ -554,7 +568,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         steps.push(`<li><b>${vp} 補給 ${tr}</b>：他的 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong></li>`);
       }
     }
-    steps.push(`<li><b>${tr} 付教練費</b>：${money(fl.coach)}</li>`);
+    steps.push(`<li><b>${tr} 匯給教練</b>：${money(fl.coach)}${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
     return `<div class="card flow"><h2>這堂的錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
       <p class="muted">${others} 人 × ${money(fl.ci.pp)}${fl.vp && fl.vpShare ? ` ＋ ${vp}的 ${money(fl.vpShare)}（從場地費扣）` : ""}，剛好付一堂 ${money(fl.venue + fl.coach)}${fl.ci.pp * fl.ci.n > fl.venue + fl.coach ? `，多出的 ${money(fl.ci.pp * fl.ci.n - fl.venue - fl.coach)} 是除不盡進位的零頭，留在班費裡` : ""}。</p></div>`;
   }
@@ -573,7 +587,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">先付了場地費，這堂的 ${money(defAmt)} 直接從裡面扣</span></div><div class="actions"><span class="pill ok">不用另外繳</span></div></li>`;
       }
       if(!r && d && isTreasurer(m)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">錢都由他收，他自己的 ${money(defAmt)} 直接放進班費</span></div><div class="actions"><span class="pill ok">不用轉</span></div></li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">錢都由他收，他自己的 ${money(defAmt)} 直接放進班費；但要記得匯教練費 ${money(fees().coach)} 給教練${flowOf(d).coachPaid ? "（已匯）" : "（還沒匯）"}</span></div><div class="actions"><span class="pill ok">課費不用轉</span></div></li>`;
       }
       let right;
       if(r){
@@ -805,6 +819,18 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "pay-confirm": S.payConfirm = id ? b.dataset.key + "|" + id : null; render(); break;
       case "reimb-method": S.draft.reimbMethod = b.dataset.v; render(); break;
+      case "coach-method": S.draft.coachMethod = b.dataset.v; render(); break;
+      case "coach-save":
+      case "coach-undo": {
+        const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
+        const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
+        if(act === "coach-save") doc.coachPaid = { amount: fl.coach, date: today(), method: S.draft.coachMethod || "LINE Pay" };
+        else delete doc.coachPaid;
+        S.pay[key] = doc; render();
+        write("payments/"+key, save("payments", key, doc));
+        toast(act === "coach-save" ? `記下了：${trName()} 已付教練費 ${money(fl.coach)}` : "教練費紀錄取消了");
+        break;
+      }
       case "reimb-save":
       case "reimb-undo": {
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
