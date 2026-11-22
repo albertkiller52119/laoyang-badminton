@@ -439,8 +439,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const unmarked = list.length - c.present - c.leave - c.absent;
     let h = `
       <div class="bar">
-        <button class="nav" data-act="date" data-n="-1" aria-label="上一次上課">‹</button>
-        <label class="picker"><span>${labelDate(S.date)}</span><input type="date" id="datePick" value="${S.date}" aria-label="選擇上課日期"></label>
+        <button class="nav" data-act="date" data-n="-1" aria-label="上一次上課"${S.date <= S.settings.start ? " disabled" : ""}>‹</button>
+        <label class="picker"><span>${labelDate(S.date)}</span><input type="date" id="datePick" value="${S.date}" min="${S.settings.start}" aria-label="選擇上課日期"></label>
         <button class="nav" data-act="date" data-n="1" aria-label="下一次上課">›</button>
       </div>
       ${S.date !== nextClassDate(sch) ? `<div><button class="link" data-act="date-next">回到最近一次上課</button></div>` : ""}
@@ -475,8 +475,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const rec = (S.pay[key] && S.pay[key].records) || {};
     let h = `
       <div class="bar">
-        <button class="nav" data-act="paydate" data-n="-1" aria-label="上一堂">‹</button>
-        <label class="picker"><span>${labelDate(d)} 這堂</span><input type="date" id="payDatePick" value="${d}" aria-label="選擇哪一堂"></label>
+        <button class="nav" data-act="paydate" data-n="-1" aria-label="上一堂"${d <= S.settings.start ? " disabled" : ""}>‹</button>
+        <label class="picker"><span>${labelDate(d)} 這堂</span><input type="date" id="payDatePick" value="${d}" min="${S.settings.start}" aria-label="選擇哪一堂"></label>
         <button class="nav" data-act="paydate" data-n="1" aria-label="下一堂">›</button>
       </div>
       ${d !== nextClassDate(sch) ? `<div><button class="link" data-act="paydate-next">回到最近一堂</button></div>` : ""}
@@ -606,7 +606,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const paused = past.filter(i => i.status === "paused");
     const rows = list.map(m => {
       let p=0, l=0, a=0;
-      Object.keys(S.att).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
+      Object.keys(S.att).filter(d => d >= S.settings.start).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
       const owed = m.role === "coach" ? [] : owedBy(m, sch);
       return {m, p, l, a, owed};
     });
@@ -705,8 +705,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   app.addEventListener("input", e => { if(e.target.id) S.draft[e.target.id] = e.target.value; });
   app.addEventListener("change", e => {
     const t = e.target;
-    if(t.id === "datePick" && t.value){ S.date = t.value; render(); }
-    else if(t.id === "payDatePick" && t.value){ S.payDate = t.value; S.payOpen = S.payConfirm = null; render(); }
+    // 開課日（12/5）之前的日期不列，選到更早就跳回開課日
+    const clamp = v => v < S.settings.start ? S.settings.start : v;
+    if(t.id === "datePick" && t.value){ S.date = clamp(t.value); render(); }
+    else if(t.id === "payDatePick" && t.value){ S.payDate = clamp(t.value); S.payOpen = S.payConfirm = null; render(); }
     else if(t.id) S.draft[t.id] = t.value;
   });
 
@@ -722,6 +724,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         if(i >= 0 && dates[i+n]) S.date = dates[i+n];
         else if(i < 0){ const nb = n > 0 ? dates.find(d => d > S.date) : [...dates].reverse().find(d => d < S.date); S.date = nb || shiftDate(S.date, 7*n); }
         else S.date = shiftDate(S.date, 7*n);
+        if(S.date < S.settings.start) S.date = S.settings.start;
         render(); break;
       }
       case "date-next": S.date = nextClassDate(schedule()); render(); break;
@@ -731,6 +734,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         if(i >= 0 && dates[i+n]) S.payDate = dates[i+n];
         else if(i < 0){ const nb = n > 0 ? dates.find(d => d > S.payDate) : [...dates].reverse().find(d => d < S.payDate); S.payDate = nb || shiftDate(S.payDate, 7*n); }
         else S.payDate = shiftDate(S.payDate, 7*n);
+        if(S.payDate < S.settings.start) S.payDate = S.settings.start;
         S.payOpen = S.payConfirm = null; render(); break;
       }
       case "paydate-next": S.payDate = nextClassDate(schedule()); S.payOpen = S.payConfirm = null; render(); break;
