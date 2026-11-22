@@ -491,7 +491,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     let h = `
       <div class="bar">
         <button class="nav" data-act="paydate" data-n="-1" aria-label="上一堂"${d <= S.settings.start ? " disabled" : ""}>‹</button>
-        <label class="picker"><span>${labelDate(d)} 這堂</span><input type="date" id="payDatePick" value="${d}" min="${S.settings.start}" aria-label="選擇哪一堂"></label>
+        <label class="picker"><span>${labelDate(d)}</span><input type="date" id="payDatePick" value="${d}" min="${S.settings.start}" aria-label="選擇哪一堂"></label>
         <button class="nav" data-act="paydate" data-n="1" aria-label="下一堂">›</button>
       </div>
       ${d !== nextClassDate(sch) ? `<div><button class="link" data-act="paydate-next">回到最近一堂</button></div>` : ""}
