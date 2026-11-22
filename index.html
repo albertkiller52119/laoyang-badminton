@@ -256,7 +256,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const tagHtml = m => (m.cls && m.cls !== "未分級" ? `<span class="tag">${esc(m.cls)}</span>` : "")
     + (m.id === S.settings.manager ? `<span class="tag role">管理</span>` : "")
     + (m.id === S.settings.treasurer ? `<span class="tag role">財務</span>` : "")
-    + (m.id === S.settings.venuePayer ? `<span class="tag role">訂場地</span>` : "");
+    + (m.id === S.settings.venuePayer ? `<span class="tag role">場地</span>` : "");
   // 財務（收錢的人）和先付場地費的人
   const treasurerOf = () => active().find(m => m.id === S.settings.treasurer) || null;
   const venuePayerOf = () => active().find(m => m.id === S.settings.venuePayer) || null;
@@ -691,7 +691,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <label class="field"><span>場地費（每小時）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
           <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>財務</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
-          <label class="field"><span>誰先付場地費給館方</span><select id="set_venuePayer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_venuePayer ?? s.venuePayer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
+          <label class="field"><span>場地（先付場地費給館方）</span><select id="set_venuePayer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_venuePayer ?? s.venuePayer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field" style="grid-column:1/-1"><span>收款方式（會顯示給大家看）</span><input id="set_payInfo" placeholder="例如：LINE Pay 轉給吳宗吉，或上課時給現金" value="${v("set_payInfo", s.payInfo)}"${dis()}></label>
         </div>
         <div class="actions"><button class="btn primary" data-act="settings-save"${dis()}>存檔</button></div>
