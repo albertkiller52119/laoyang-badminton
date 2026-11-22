@@ -90,6 +90,9 @@ main{padding-block:18px 48px;display:grid;gap:16px}
 .rules ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
 .rules li{font-size:.95rem}
 .rules strong{font-weight:900}
+.rules ol.rule-list{margin:0;padding-left:1.4em;display:grid;gap:10px}
+.rules ol.rule-list > li::marker{font-weight:900;color:var(--warn)}
+.rules ol.rule-list ul{margin-top:4px}
 
 .summary{display:flex;flex-wrap:wrap;gap:8px}
 .stat{flex:1 1 120px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px}
@@ -266,13 +269,18 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   // 班規提醒：怎麼收費、錢交給誰、請假缺席怎麼算
   const rulesBox = () => `<div class="rules">
     <b>收費小提醒</b>
-    <ul>
-      <li><strong>一堂一收</strong>：每次上完課，教練費加場地費由當天上課的人平分。</li>
-      ${treasurerOf() ? `<li><strong>錢交給 ${esc(trName())}</strong>：${esc(trName())} 是我們的財務，大家的課費都轉給他${S.settings.payInfo ? `（${esc(S.settings.payInfo)}）` : ""}。</li>` : ""}
-      ${venuePayerOf() ? `<li><strong>${esc(vpName())} 負責場地</strong>：場地費由他先付給館方，他自己的課費直接從裡面扣，多出來的由 ${esc(trName())} 匯還給他。</li>` : ""}
-      <li><strong>有人事先請假</strong>：可以「整班暫停」，這週不上課也不收錢；或「其他人照上」，由沒請假的人平分。</li>
-      <li><strong>沒請假就缺席</strong>：課照上，這堂的費用一樣要分攤喔。</li>
-    </ul>
+    <ol class="rule-list">
+      <li><strong>費用怎麼算</strong><br>每堂課結束後，將當天的教練費和場地費加總，再由實際上課的人平分。</li>
+      <li><strong>費用交給誰</strong><br>所有課程費用統一交給吉哥${S.settings.payInfo ? `（${esc(S.settings.payInfo)}）` : ""}。</li>
+      <li><strong>場地費由誰處理</strong><br>場地費由芳玉先付給場館，芳玉自己的課費則直接從中扣除，剩餘款項吉哥再匯給芳玉。</li>
+      <li><strong>有人事先請假</strong><br>如果有人事先請假，可以有兩種方式：
+        <ul>
+          <li><strong>整班暫停：</strong>當週課程取消，大家都不用繳費。</li>
+          <li><strong>其他人照常上課：</strong>課程照常進行，由當天實際上課的人平均分攤費用。</li>
+        </ul>
+      </li>
+      <li><strong>沒有事先請假卻缺席</strong><br>課程仍照常進行，該堂課的費用也一樣需要分攤。</li>
+    </ol>
   </div>`;
 
   // ---------- 課表與費用 ----------
