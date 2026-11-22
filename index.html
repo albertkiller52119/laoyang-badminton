@@ -207,7 +207,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
     coachHours:2, coachRate:1000, venueHours:3, venueRate:300,
-    venuePayer:"m03", treasurer:"m04", payInfo:"" };   // 誰先付場地費、誰負責收錢、收款方式說明
+    venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate"];
 
   const pad = n => String(n).padStart(2,"0");
@@ -254,6 +254,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const nameOf = id => (S.members.find(m => m.id === id) || {}).name || "（已刪除的隊友）";
   const dis = () => S.canWrite ? "" : " disabled";
   const tagHtml = m => (m.cls && m.cls !== "未分級" ? `<span class="tag">${esc(m.cls)}</span>` : "")
+    + (m.id === S.settings.manager ? `<span class="tag role">管理</span>` : "")
     + (m.id === S.settings.treasurer ? `<span class="tag role">收錢</span>` : "")
     + (m.id === S.settings.venuePayer ? `<span class="tag role">訂場地</span>` : "");
   // 財務（收錢的人）和先付場地費的人
@@ -688,6 +689,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <label class="field"><span>教練費（每小時）</span><input id="set_coachRate" type="number" inputmode="numeric" min="0" value="${v("set_coachRate", s.coachRate)}"${dis()}></label>
           <label class="field"><span>場地租幾小時（每堂）</span><input id="set_venueHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_venueHours", s.venueHours)}"${dis()}></label>
           <label class="field"><span>場地費（每小時）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
+          <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>誰負責收錢（財務）</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>誰先付場地費給館方</span><select id="set_venuePayer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_venuePayer ?? s.venuePayer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field" style="grid-column:1/-1"><span>收款方式（會顯示給大家看）</span><input id="set_payInfo" placeholder="例如：LINE Pay 轉給吳宗吉，或上課時給現金" value="${v("set_payInfo", s.payInfo)}"${dis()}></label>
@@ -896,7 +898,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "settings-save": {
         const next = { ...S.settings };
-        ["group","location","time","start","treasurer","venuePayer","payInfo"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
+        ["group","location","time","start","manager","treasurer","venuePayer","payInfo"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
         NUMS.forEach(k => { const n = Number(document.getElementById("set_"+k).value); next[k] = n >= 0 ? n : DEF[k]; });
         if(!next.start) next.start = DEF.start;
         delete next.perTerm;
@@ -928,6 +930,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       S.loaded.members = S.loaded.settings = true;
       if(first){ S.date = null; S.payDate = null; }
+      if(!S.loginOpen) renderAdminBar();   // 名單載入後補上管理員名字
       if(noticeEl.textContent.startsWith("暫時連不上")) notice("");
       scheduleRender();
     } catch(e){
@@ -960,7 +963,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。請按「顯示」確認打的字：數字和英文要用半形，也要注意瀏覽器是不是自動帶入了舊密碼。</span></form>`;
       setTimeout(() => { const el = document.getElementById("pwInput"); if(el) el.focus(); }, 0);
     } else {
-      adminBar.innerHTML = `<div class="admin"><span>目前是查看模式，大家都能看。</span><button class="btn small" id="loginBtn">管理員登入</button></div>`;
+      const mg = active().find(m => m.id === S.settings.manager);
+      adminBar.innerHTML = `<div class="admin"><span>目前是查看模式，大家都能看。${mg ? `資料有問題請找管理員 <b>${esc(mg.name)}</b>。` : ""}</span><button class="btn small" id="loginBtn">管理員登入</button></div>`;
     }
   }
   adminBar.addEventListener("click", e => {
