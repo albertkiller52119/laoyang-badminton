@@ -273,6 +273,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <li><strong>費用分攤：</strong>每堂課的教練費＋場地費，由當天上課的人平均分攤。</li>
       <li><strong>費用收取：</strong>課費統一交給吉哥（LINE Pay 或現金）。</li>
       <li><strong>場地費：</strong>請芳玉先行支付，自己的課費直接扣除，剩餘款項請吉哥匯還。</li>
+      ${S.settings.bigMin > 0 ? `<li><strong>場地面數：</strong>1～${S.settings.bigMin - 1} 人開 1 面（每小時 ${money(S.settings.venueRate)}）；${S.settings.bigMin} 人以上開 2 面（假日優惠，2 面每小時 ${money(S.settings.venueRate2)}）。</li>` : ""}
       <li><strong>請假規則</strong>
         <ul>
           <li><strong>事先請假：</strong>可選擇整班停課，或其他人照常上課並分攤費用。</li>
