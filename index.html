@@ -261,7 +261,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const treasurerOf = () => active().find(m => m.id === S.settings.treasurer) || null;
   const venuePayerOf = () => active().find(m => m.id === S.settings.venuePayer) || null;
   const trName = () => (treasurerOf() || {}).name || "財務";
-  const vpName = () => (venuePayerOf() || {}).name || "訂場地的人";
+  const vpName = () => (venuePayerOf() || {}).name || "負責場地的人";
 
   // 班規提醒：怎麼收費、錢交給誰、請假缺席怎麼算
   const rulesBox = () => `<div class="rules">
@@ -269,7 +269,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     <ul>
       <li><strong>一堂一收</strong>：每次上完課，教練費加場地費由當天上課的人平分。</li>
       ${treasurerOf() ? `<li><strong>錢交給 ${esc(trName())}</strong>：${esc(trName())} 是我們的財務，大家的課費都轉給他${S.settings.payInfo ? `（${esc(S.settings.payInfo)}）` : ""}。</li>` : ""}
-      ${venuePayerOf() ? `<li><strong>${esc(vpName())} 幫忙訂場地</strong>：場地費由他先付給館方，他自己的課費直接從裡面扣，多出來的由 ${esc(trName())} 匯還給他。</li>` : ""}
+      ${venuePayerOf() ? `<li><strong>${esc(vpName())} 負責場地</strong>：場地費由他先付給館方，他自己的課費直接從裡面扣，多出來的由 ${esc(trName())} 匯還給他。</li>` : ""}
       <li><strong>有人事先請假</strong>：可以「整班暫停」，這週不上課也不收錢；或「其他人照上」，由沒請假的人平分。</li>
       <li><strong>沒請假就缺席</strong>：課照上，這堂的費用一樣要分攤喔。</li>
     </ul>
