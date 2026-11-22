@@ -94,10 +94,10 @@ main{padding-block:18px 48px;display:grid;gap:16px}
 .rules ol.rule-list > li::marker{font-weight:900;color:var(--warn)}
 .rules ol.rule-list ul{margin-top:4px}
 
-.summary{display:flex;flex-wrap:wrap;gap:8px}
-.stat{flex:1 1 120px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px}
-.stat b{display:block;font-size:1.6rem;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}
-.stat span{font-size:.85rem;color:var(--muted)}
+.summary{display:flex;flex-wrap:nowrap;gap:6px}
+.stat{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center}
+.stat b{display:block;font-size:1.15rem;font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat span{display:block;font-size:.75rem;color:var(--muted);line-height:1.25}
 .stat.ok b{color:var(--ok)} .stat.warn b{color:var(--warn)} .stat.bad b{color:var(--bad)}
 
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
