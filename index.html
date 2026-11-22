@@ -209,7 +209,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const METHODS = ["現金","LINE Pay"];
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
-    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:1000, bigMin:7,
+    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:7,
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
 
@@ -273,7 +273,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <li><strong>費用分攤：</strong>每堂課的教練費＋場地費，由當天上課的人平均分攤。</li>
       <li><strong>費用收取：</strong>課費統一交給吉哥（LINE Pay 或現金）。</li>
       <li><strong>場地費：</strong>請芳玉先行支付，自己的課費直接扣除，剩餘款項請吉哥匯還。</li>
-      ${S.settings.bigMin > 0 ? `<li><strong>場地面數：</strong>1～${S.settings.bigMin - 1} 人開 1 面（每小時 ${money(S.settings.venueRate)}）；${S.settings.bigMin} 人以上開 2 面（假日優惠，2 面每小時 ${money(S.settings.venueRate2)}）。</li>` : ""}
+      ${S.settings.bigMin > 0 ? `<li><strong>場地面數：</strong>1～${S.settings.bigMin - 1} 人開 1 面；${S.settings.bigMin} 人以上開 2 面（包場）。週六是假日價：1 面每小時 ${money(S.settings.venueRate * 2)}、2 面每小時 ${money(S.settings.venueRate2 * 2)}；身障羽球選手半價，實付 1 面每小時 <strong>${money(S.settings.venueRate)}</strong>、2 面每小時 <strong>${money(S.settings.venueRate2)}</strong>。</li>` : ""}
       <li><strong>請假規則</strong>
         <ul>
           <li><strong>事先請假：</strong>可選擇整班停課，或其他人照常上課並分攤費用。</li>
@@ -376,7 +376,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       </table>
       <ul class="notes">
         <li><strong>一堂一收</strong>，上一次課收一次，不用先繳一整期。</li>
-        ${s.bigMin > 0 ? `<li><strong>${s.bigMin} 人以上開 2 面場地</strong>（假日優惠，2 面合計每小時 ${money(s.venueRate2)}）；${s.bigMin - 1} 人以下開 1 面（每小時 ${money(s.venueRate)}）。</li>` : ""}
+        ${s.bigMin > 0 ? `<li><strong>${s.bigMin} 人以上開 2 面場地</strong>（包場，身障半價後每小時 ${money(s.venueRate2)}）；${s.bigMin - 1} 人以下開 1 面（身障半價後每小時 ${money(s.venueRate)}）。</li>` : ""}
         ${venuePayerOf() ? `<li><strong>${esc(vpName())}</strong> 先幫忙付場地費 ${money(f.venue)} 給館方，他的 ${money(f.pp)} 直接扣掉，${esc(trName())} 再匯 <strong>${money(f.venue - f.pp)}</strong> 還給他（${f.n} 人都上課時）。</li>` : ""}
         <li><strong>事先請假</strong>選「整班暫停」：這週不上課、不收錢。</li>
         <li>有人請假、其他人<strong>照上</strong>：由沒請假的人平分，例如 ${[...new Set([f.n - 1, s.bigMin - 1, s.bigMin - 2])].filter(k => k > 0 && k < f.n).sort((a, b) => b - a).map(k => `${k} 人上課每人 ${money(fees(k).pp)}`).join("、")}。</li>
@@ -705,9 +705,9 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <label class="field"><span>教練課幾小時（每堂）</span><input id="set_coachHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_coachHours", s.coachHours)}"${dis()}></label>
           <label class="field"><span>教練費（每小時）</span><input id="set_coachRate" type="number" inputmode="numeric" min="0" value="${v("set_coachRate", s.coachRate)}"${dis()}></label>
           <label class="field"><span>場地租幾小時（每堂）</span><input id="set_venueHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_venueHours", s.venueHours)}"${dis()}></label>
-          <label class="field"><span>1 面場地費（每小時）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
+          <label class="field"><span>1 面場地費（每小時，身障半價後）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
           <label class="field"><span>幾人以上開 2 面場地（填 0 ＝不開）</span><input id="set_bigMin" type="number" inputmode="numeric" min="0" value="${v("set_bigMin", s.bigMin)}"${dis()}></label>
-          <label class="field"><span>2 面場地費（每小時，2 面合計）</span><input id="set_venueRate2" type="number" inputmode="numeric" min="0" value="${v("set_venueRate2", s.venueRate2)}"${dis()}></label>
+          <label class="field"><span>2 面包場費（每小時，身障半價後）</span><input id="set_venueRate2" type="number" inputmode="numeric" min="0" value="${v("set_venueRate2", s.venueRate2)}"${dis()}></label>
           <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>財務</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>場地（先付場地費給館方）</span><select id="set_venuePayer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_venuePayer ?? s.venuePayer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
