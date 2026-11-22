@@ -524,7 +524,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <div class="stat"><b>${money(ci.pp)}</b><span>每人</span></div>
           <div class="stat ok"><b>${paid.length}</b><span>已經轉給${esc(trName())}</span></div>
           <div class="stat bad"><b>${unpaid.length}</b><span>還沒轉</span></div>
-          <div class="stat"><b>${money(total)}</b><span>${esc(trName())}收到</span></div>
         </div>
         ${flowCard(d, fl)}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
