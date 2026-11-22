@@ -210,7 +210,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
     coachHours:2, coachRate:1000, venueHours:3, venueRate:300,
-    venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
+    venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate"];
 
   const pad = n => String(n).padStart(2,"0");
@@ -263,8 +263,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   // 財務（收錢的人）和先付場地費的人
   const treasurerOf = () => active().find(m => m.id === S.settings.treasurer) || null;
   const venuePayerOf = () => active().find(m => m.id === S.settings.venuePayer) || null;
-  const trName = () => (treasurerOf() || {}).name || "財務";
-  const vpName = () => (venuePayerOf() || {}).name || "負責場地的人";
+  const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
+  const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
   // 班規提醒：怎麼收費、錢交給誰、請假缺席怎麼算
   const rulesBox = () => `<div class="rules">
@@ -699,6 +699,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>財務</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>場地（先付場地費給館方）</span><select id="set_venuePayer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_venuePayer ?? s.venuePayer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
+          <label class="field"><span>財務的稱呼（提醒裡用）</span><input id="set_trNick" placeholder="例如：吉哥" value="${v("set_trNick", s.trNick)}"${dis()}></label>
+          <label class="field"><span>場地的稱呼（提醒裡用）</span><input id="set_vpNick" placeholder="例如：芳玉" value="${v("set_vpNick", s.vpNick)}"${dis()}></label>
           <label class="field" style="grid-column:1/-1"><span>收款方式（會顯示給大家看）</span><input id="set_payInfo" placeholder="例如：LINE Pay 轉給吳宗吉，或上課時給現金" value="${v("set_payInfo", s.payInfo)}"${dis()}></label>
         </div>
         <div class="actions"><button class="btn primary" data-act="settings-save"${dis()}>存檔</button></div>
@@ -837,8 +839,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
             (leave.length ? `${leave.join("、")} 請假，其他 ${ci.n} 位照常上課。\n` : "") +
             `一堂 ${money(fees().session)}，${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
             (treasurerOf() ? `👉 請把 ${money(ci.pp)} 轉給 ${tr}${info}。\n` : "") +
-            (fl.vp && fl.vpShare && fl.net >= 0 ? `${fl.vp.name} 已經先付場地費 ${money(fl.venue)}，他的課費直接扣掉，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
-            (fl.vp && !fl.vpShare && fl.net > 0 ? `${fl.vp.name} 已經先付場地費 ${money(fl.venue)}，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
+            (fl.vp && fl.vpShare && fl.net >= 0 ? `${vpName()} 已經先付場地費 ${money(fl.venue)}，他的課費直接扣掉，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
+            (fl.vp && !fl.vpShare && fl.net > 0 ? `${vpName()} 已經先付場地費 ${money(fl.venue)}，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (unpaid.length ? `還沒轉的：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家的錢都收齊了，謝謝大家！`);
         } else {
           const sch = schedule();
@@ -905,7 +907,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "settings-save": {
         const next = { ...S.settings };
-        ["group","location","time","start","manager","treasurer","venuePayer","payInfo"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
+        ["group","location","time","start","manager","treasurer","venuePayer","payInfo","trNick","vpNick"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
         NUMS.forEach(k => { const n = Number(document.getElementById("set_"+k).value); next[k] = n >= 0 ? n : DEF[k]; });
         if(!next.start) next.start = DEF.start;
         delete next.perTerm;
