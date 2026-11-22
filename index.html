@@ -435,14 +435,21 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       <button data-act="mode" data-v="single" aria-pressed="${cur==="single"}"${dis()}>其他人照上</button>
     </div></div>`;
 
-  // 一堂課的說明橫幅（點名、繳費共用）
-  function classBanner(d, withSwitch){
+  // 操作說明只給管理員看，一般人只看資訊
+  const adminHint = text => S.canWrite ? text : "";
+  const adminHintP = text => S.canWrite ? `<p class="muted">${text}</p>` : "";
+
+  // 點名頁的說明橫幅
+  function classBanner(d){
     const ci = classInfo(d), f = fees();
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
-    if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + (withSwitch ? modeSwitch("paused") : "");
-    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + (withSwitch ? modeSwitch("single") : "");
-    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分。有人請假就點「請假」，再選整班暫停或其他人照上。</small></div>`;
+    if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + modeSwitch("paused");
+    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + modeSwitch("single");
+    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)} 由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>`;
   }
+  // 繳費頁只在暫停那週提醒不收費
+  const payNotice = d => statusOf(d) === "paused"
+    ? `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` : "";
 
   // 點名
   function viewCheckin(sch){
@@ -459,7 +466,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <button class="nav" data-act="date" data-n="1" aria-label="下一次上課">›</button>
       </div>
       ${S.date !== nextClassDate(sch) ? `<div><button class="link" data-act="date-next">回到最近一次上課</button></div>` : ""}
-      ${classBanner(S.date, true)}`;
+      ${classBanner(S.date)}`;
     if(!list.length) return h + noMembers();
     h += `
       <div class="summary">
@@ -468,7 +475,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat bad"><b>${c.absent}</b><span>缺席</span></div>
         <div class="stat"><b>${unmarked}</b><span>還沒點</span></div>
       </div>
-      ${unmarked && (!c.leave || st === "single") ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
+      ${S.canWrite && unmarked && (!c.leave || st === "single") ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
       <ul class="list">` +
       list.map(m => {
         const s = rec[m.id];
@@ -478,7 +485,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
             ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
-      <p class="muted">點一下就存好了；點錯的話，再點一次同一個按鈕就能取消。</p>
+      ${adminHintP("點一下就存好了；點錯的話，再點一次同一個按鈕就能取消。")}
       ${rulesBox()}`;
     return h;
   }
@@ -495,7 +502,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <button class="nav" data-act="paydate" data-n="1" aria-label="下一堂">›</button>
       </div>
       ${d !== nextClassDate(sch) ? `<div><button class="link" data-act="paydate-next">回到最近一堂</button></div>` : ""}
-      ${classBanner(d, false)}`;
+      ${payNotice(d)}`;
     if(!players().length) return h + noMembers();
     if(ci.n && d >= S.settings.start){
       const fl = flowOf(d);
@@ -520,7 +527,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     h += `<div class="card"><h2>誰還沒繳？</h2>` + (owing.length
       ? `<ul class="list">${owing.map(x => `<li class="row"><div class="who"><b>${esc(x.m.name)}</b>${tagHtml(x.m)}<span class="sub">${x.ds.length} 堂，一共 ${money(x.ds.reduce((a, dd) => a + oweAmount(x.m, dd), 0))}</span></div><div class="chips">${x.ds.map(dd => `<button class="pill warn" data-act="paydate-go" data-date="${dd}">${md(dd)}</button>`).join("")}</div></li>`).join("")}</ul>
          <div class="actions"><button class="btn small" data-act="copy-owed">複製欠費提醒，貼到 LINE</button></div>
-         <p class="muted">點日期可以跳到那一堂記收款。</p>`
+         ${adminHintP("點日期可以跳到那一堂記收款。")}`
       : `<p class="muted">目前大家都繳清了 👍</p>`) + `</div>`;
     // 財務還沒匯還給訂場地的人
     const ro = reimbOwed(sch);
@@ -528,7 +535,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       h += `<div class="card"><h2>${esc(trName())} 還要匯給 ${esc(vpName())}</h2>` + (ro.length
         ? `<p class="big-money">${money(ro.reduce((a, x) => a + x.fl.net, 0))}</p>
            <div class="chips">${ro.map(x => `<button class="pill warn" data-act="paydate-go" data-date="${x.d}">${md(x.d)}・${money(x.fl.net)}</button>`).join("")}</div>
-           <p class="muted">這是 ${esc(vpName())} 先幫忙付的場地費，扣掉他自己的課費後要還他的錢。匯完後點日期，到那一堂按「記下已匯款」。</p>`
+           <p class="muted">這是 ${esc(vpName())} 先幫忙付的場地費，扣掉他自己的課費後要還他的錢。${adminHint("匯完後點日期，到那一堂按「記下已匯款」。")}</p>`
         : `<p class="muted">都匯清了，沒有欠 ${esc(vpName())} 的錢 👍</p>`) + `</div>`;
     }
     // 財務還沒付給教練的
@@ -536,7 +543,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     h += `<div class="card"><h2>${esc(trName())} 還要匯給教練</h2>` + (co.length
       ? `<p class="big-money">${money(co.reduce((a, x) => a + x.fl.coach, 0))}</p>
          <div class="chips">${co.map(x => `<button class="pill warn" data-act="paydate-go" data-date="${x.d}">${md(x.d)}・${money(x.fl.coach)}</button>`).join("")}</div>
-         <p class="muted">匯完後點日期，到那一堂按「記下已付教練費」。</p>`
+         ${adminHintP("匯完後點日期，到那一堂按「記下已付教練費」。")}`
       : `<p class="muted">教練費都付清了 👍</p>`) + `</div>`;
     h += rulesBox() + feeCard();
     return h;
@@ -686,7 +693,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat"><b>${money(f.pp)}</b><span>每人每堂</span></div>
         <div class="stat"><b>${money(f.session)}</b><span>一堂總共</span></div>
       </div>
-      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list">${on.map(row).join("")}</ul><p class="muted">排序：先看分級，同分級再照姓名筆畫。</p>` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
+      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list">${on.map(row).join("")}</ul>${adminHintP("排序：先看分級，同分級再照姓名筆畫。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
       ${!S.canWrite ? "" : `<div class="card">
         <h2>加入新隊友</h2>
         <div class="fields">
