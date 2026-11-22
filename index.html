@@ -529,7 +529,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         ${payList(key, who, ci.pp, d)}`;
     }
-    h += rulesBox() + feeCard();
+    h += rulesBox();
     return h;
   }
 
@@ -712,7 +712,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         </div>
         <div class="actions"><button class="btn primary" data-act="settings-save"${dis()}>存檔</button></div>
       </div>`}
-      ${feeCard()}`;
+      `;
   }
 
   // ---------- events ----------
