@@ -270,16 +270,15 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const rulesBox = () => `<div class="rules">
     <b>收費小提醒</b>
     <ol class="rule-list">
-      <li><strong>費用怎麼算</strong><br>每堂課結束後，將當天的教練費和場地費加總，再由實際上課的人平分。</li>
-      <li><strong>費用交給誰</strong><br>所有課程費用統一交給吉哥${S.settings.payInfo ? `（${esc(S.settings.payInfo)}）` : ""}。</li>
-      <li><strong>場地費由誰處理</strong><br>場地費由芳玉先付給場館，芳玉自己的課費則直接從中扣除，剩餘款項吉哥再匯給芳玉。</li>
-      <li><strong>有人事先請假</strong><br>如果有人事先請假，可以有兩種方式：
+      <li><strong>費用分攤：</strong>每堂課的教練費＋場地費，由當天上課的人平均分攤。</li>
+      <li><strong>費用收取：</strong>課費統一交給吉哥（LINE Pay 或現金）。</li>
+      <li><strong>場地費：</strong>請芳玉先行支付，自己的課費直接扣除，剩餘款項請吉哥匯還。</li>
+      <li><strong>請假規則</strong>
         <ul>
-          <li><strong>整班暫停：</strong>當週課程取消，大家都不用繳費。</li>
-          <li><strong>其他人照常上課：</strong>課程照常進行，由當天實際上課的人平均分攤費用。</li>
+          <li><strong>事先請假：</strong>可選擇整班停課，或其他人照常上課並分攤費用。</li>
+          <li><strong>未事先請假：</strong>課程照常進行，缺席者仍須分攤當堂費用。</li>
         </ul>
       </li>
-      <li><strong>沒有事先請假卻缺席</strong><br>課程仍照常進行，該堂課的費用也一樣需要分攤。</li>
     </ol>
   </div>`;
 
