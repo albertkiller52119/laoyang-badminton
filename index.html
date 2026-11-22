@@ -229,7 +229,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   function toast(msg){ toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 2400); }
   function notice(msg){ noticeEl.textContent = msg || ""; noticeEl.hidden = !msg; }
   // 資料存在 Google 試算表，透過 Apps Script 的資料接口（Api.gs）讀寫
-  const API = "https://script.google.com/macros/s/AKfycbzBH60SYKylY6P8kqHEVJHRsUE41vePpTgL-98y8H9vhgaPlzAdn8_5rUVy84UFDo5m/exec";
+  const API = "https://script.google.com/macros/s/AKfycbypMOtouElSK96qRdenjKcePDF58TBFmw1pree2OhDxBy0iXvNorCRlhpGdFkCYEbKe/exec";
   async function gs(fn, ...args){
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }) });
     const j = await r.json();
