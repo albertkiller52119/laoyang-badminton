@@ -354,20 +354,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const preItem = extra => { const s = S.settings, big = s.bigMin;
     return `<li><strong>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：</strong>照原規則，${big} 人以上使用 2 面（${money(s.venueRate2)}／時）、${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）。${extra || ""}</li>`; };
   // 點名頁：請假規則
-  const leaveBox = () => { return `<details class="rules">
-    <summary><b>請假規則・場地安排</b></summary>
+  const leaveBox = () => `<div class="rules">
     <b>請假規則</b>
     <ul class="rule-list">
       <li><strong>事先請假：</strong>最晚請提前一週告知，課程費用由實際出席人數平均分攤。若上課人數少於 4 人，則由大家討論是否停課。</li>
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤課程費用。</li>
     </ul>
-    <b>場地安排</b>
-    <ul class="rule-list">
-      ${preSeason() ? preItem() : ""}
-      <li><strong>季租 2 面場地：</strong>自 ${md(SEASON_FROM)} 起改為季租 2 面場地，不論出席人數都使用 2 面，場地費由當天出席的人一起分攤。</li>
-      ${seasonItems()}
-    </ul>
-  </details>`; };
+  </div>`;
   // 繳費頁：收費小提醒
   const rulesBox = d => {
     const s = S.settings, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
