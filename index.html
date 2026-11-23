@@ -663,33 +663,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       if(!r && d && isTreasurer(m)){
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(!!fl.reimb, esc(vpName()), "reimb") : ""}${pill(!!fl.coachPaid, cn, "coach")}</div>`; })()}</li>`;
       }
-      let right;
-      if(r){
-        right = S.payConfirm === tok
-          ? `<div class="actions"><span class="muted">要取消這筆紀錄嗎？</span><button class="btn small danger" data-act="pay-del" data-key="${key}" data-id="${m.id}"${dis()}>確定取消</button><button class="btn small" data-act="pay-confirm" data-id="">先不要</button></div>`
-          : `<div class="actions"><span class="pill ok">已繳</span>${S.canWrite ? `<button class="btn small" data-act="pay-confirm" data-key="${key}" data-id="${m.id}">取消</button>` : ""}</div>`;
-      } else {
-        right = S.payOpen === tok ? "" : `<div class="actions">${S.canWrite ? `<button class="pill bad" data-act="pay-open" data-key="${key}" data-id="${m.id}">還沒付</button>` : `<span class="pill bad">還沒付</span>`}</div>`;
-      }
-      let form = "";
-      if(!r && S.payOpen === tok){
-        const d = S.draft, meth = d.payMethod || "現金";
-        form = `<div class="form">
-          <div class="fields">
-            <label class="field"><span>收了多少（元）</span><input id="payAmt" type="number" inputmode="numeric" min="0" step="1" value="${esc(d.payAmt ?? amt)}"></label>
-            <label class="field"><span>哪天收的</span><input id="payDate" type="date" value="${esc(d.payDate || today())}"></label>
-          </div>
-          <div class="field"><span>怎麼付的</span>
-            <div class="seg two" role="group" aria-label="付款方式">${METHODS.map(x => `<button data-act="pay-method" data-v="${x}" aria-pressed="${meth===x}">${x}</button>`).join("")}</div>
-          </div>
-          <div class="actions"><button class="btn primary" data-act="pay-save" data-key="${key}" data-id="${m.id}">確認收款</button><button class="btn" data-act="pay-open" data-id="">先不要</button></div>
-        </div>`;
-      }
-      const wide = (!r && S.payOpen === tok) || (r && S.payConfirm === tok);
-      return `<li class="row${wide ? " wide" : ""}">
+      const right = `<div class="actions">${S.canWrite
+        ? `<button class="pill ${r ? "ok" : "bad"}" data-act="${r ? "pay-del" : "pay-save"}" data-key="${key}" data-id="${m.id}" data-amt="${amt}">${r ? "✓ 已付" : "還沒付"}</button>`
+        : `<span class="pill ${r ? "ok" : "bad"}">${r ? "✓ 已付" : "還沒付"}</span>`}</div>`;
+      return `<li class="row">
         <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}
-          ${r ?`<span class="sub">${money(r.amount)}・${esc(r.method||"")}・${esc(md(r.date||today()))} 收</span>` : ""}</div>
-        ${right}${form}</li>`;
+</div>
+        ${right}</li>`;
     }).join("") + `</ul>`;
   }
 
@@ -878,13 +858,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       case "pay-open": S.payOpen = id ? b.dataset.key + "|" + id : null; S.payConfirm = null; delete S.draft.payAmt; delete S.draft.payDate; delete S.draft.payMethod; render(); break;
       case "pay-method": S.draft.payMethod = b.dataset.v; render(); break;
       case "pay-save": {
-        const raw = document.getElementById("payAmt").value;
-        const amt = Number(raw);
-        if(raw === "" || !(amt >= 0)){ toast("請先填金額"); break; }
-        const date = document.getElementById("payDate").value || today();
+        const amt = Number(b.dataset.amt) || 0, date = today();
         const key = b.dataset.key;
         const recs = { ...((S.pay[key] && S.pay[key].records) || {}) };
-        recs[id] = { amount: amt, date, method: S.draft.payMethod || "現金" };
+        recs[id] = { amount: amt, date, method: "" };
         const doc = payDoc(key, recs);
         S.pay[key] = doc; S.payOpen = null; render();
         write("payments/"+key, save("payments", key, doc));
@@ -935,7 +912,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         const doc = payDoc(key, recs);
         S.pay[key] = doc; S.payConfirm = null; render();
         write("payments/"+key, save("payments", key, doc));
-        toast("這筆紀錄取消了");
+        toast(`${nameOf(id)} 改回還沒付`);
         break;
       }
       case "copy-class":
