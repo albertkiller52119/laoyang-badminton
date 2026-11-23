@@ -268,13 +268,18 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
   // 點名頁：請假規則
-  const leaveBox = () => `<div class="rules">
+  const leaveBox = () => { const big = S.settings.bigMin; return `<div class="rules">
     <b>請假規則</b>
     <ul class="rule-list">
-      <li><strong>要請假，記得提早說一聲</strong><br>可以選「整班暫停」，或「其他人照上」，由當天來的人一起分攤費用。</li>
-      <li><strong>沒先請假就沒來</strong><br>課還是照上，這堂的費用一樣要分攤喔！</li>
+      <li><strong>事先請假：</strong>最晚提前一週告知，課程費用由當天出席的人平均分攤；若請假後人數低於 4 人，整班停課。</li>
+      <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤課程費用。</li>
     </ul>
-  </div>`;
+    ${big > 0 ? `<b>場地安排</b>
+    <ul class="rule-list">
+      <li><strong>${big - 1} 人以下：</strong>使用 1 面場地。</li>
+      <li><strong>${big} 人以上：</strong>使用 2 面場地（包場）。</li>
+    </ul>` : ""}
+  </div>`; };
   // 繳費頁：收費小提醒
   const rulesBox = () => {
     const s = S.settings, big = s.bigMin, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
