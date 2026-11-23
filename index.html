@@ -370,7 +370,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   // 財務還沒付給教練的課
   const coachOwed = sch => pastClasses(sch).map(i => ({ d: i.date, fl: flowOf(i.date) })).filter(x => x.fl.ci.n && !x.fl.coachPaid);
   // 「記下已付款」的小按鈕組：選付款方式＋記下；已付就顯示紀錄和取消
-  const paidControl = (done, d, kind, draftKey, label) => done
+  const paidControl = (done, d, kind, draftKey, label) => !S.canWrite ? "" : done
     ? `<br><span class="pill ok">已付款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="${kind}-undo" data-date="${d}">取消紀錄</button>` : ""}`
     : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft[draftKey] || "LINE Pay") ? " primary" : ""}" data-act="${kind}-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="${kind}-save" data-date="${d}">${label}</button></div>` : `<br><span class="pill bad">還沒付</span>`);
   // n：這堂上課人數（不給就用全部隊友）；人數達 bigMin 就開 2 面場地
@@ -577,7 +577,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       if(fl.net > 0){
         const done = fl.reimb;
         steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}
-          ${done ? `<br><span class="pill ok">已匯款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="reimb-undo" data-date="${d}">取消紀錄</button>` : ""}`
+          ${!S.canWrite ? "" : done ? `<br><span class="pill ok">已匯款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="reimb-undo" data-date="${d}">取消紀錄</button>` : ""}`
                  : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft.reimbMethod || "LINE Pay") ? " primary" : ""}" data-act="reimb-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="reimb-save" data-date="${d}">記下已匯款</button></div>` : `<br><span class="pill bad">還沒匯</span>`)}</li>`);
       } else if(fl.net < 0){
         steps.push(`<li><b>${vp}補給${tr}：</b>${vp}的課費 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong>。</li>`);
@@ -602,7 +602,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付館方</span>` : `<span class="pill bad">還沒付館方</span>`}</div></li>`;
       }
       if(!r && d && isTreasurer(m)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已匯給" : "還沒匯給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName()) + " " + money(fl.net)) : ""}${pill(fl.coachPaid, cn + " " + money(fl.coach))}</div>`; })()}</li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已匯給" : "還沒匯給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName())) : ""}${pill(fl.coachPaid, cn)}</div>`; })()}</li>`;
       }
       let right;
       if(r){
@@ -610,7 +610,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           ? `<div class="actions"><span class="muted">要取消這筆紀錄嗎？</span><button class="btn small danger" data-act="pay-del" data-key="${key}" data-id="${m.id}"${dis()}>確定取消</button><button class="btn small" data-act="pay-confirm" data-id="">先不要</button></div>`
           : `<div class="actions"><span class="pill ok">已繳</span>${S.canWrite ? `<button class="btn small" data-act="pay-confirm" data-key="${key}" data-id="${m.id}">取消</button>` : ""}</div>`;
       } else {
-        right = S.payOpen === tok ? "" : `<div class="actions"><span class="pill bad">還沒繳</span>${S.canWrite ? `<button class="btn small primary" data-act="pay-open" data-key="${key}" data-id="${m.id}">記一筆收款</button>` : ""}</div>`;
+        right = S.payOpen === tok ? "" : `<div class="actions"><span class="pill bad">還沒付</span>${S.canWrite ? `<button class="btn small primary" data-act="pay-open" data-key="${key}" data-id="${m.id}">記一筆收款</button>` : ""}</div>`;
       }
       let form = "";
       if(!r && S.payOpen === tok){
