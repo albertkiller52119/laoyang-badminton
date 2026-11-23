@@ -138,6 +138,19 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:70
 .list.pair .seg{flex:none;max-width:none;grid-template-columns:repeat(var(--n,3),1fr);gap:4px}
 .list.pair .seg button{min-height:46px;padding:0;font-size:.92rem}
 .list.pair .row.wide{grid-column:1/-1;border-right:0}
+/* 統計卡片：出席／請假／缺席小格＋付款狀態 */
+.mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.mini div{background:var(--surface-2);border-radius:8px;text-align:center;padding:5px 0 4px}
+.mini b{display:block;font-size:1.15rem;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums}
+.mini span{display:block;font-size:.72rem;color:var(--muted)}
+.mini .ok{background:var(--ok-bg)} .mini .ok b{color:var(--ok)}
+.mini .warn{background:var(--warn-bg)} .mini .warn b{color:var(--warn)}
+.mini .bad{background:var(--bad-bg)} .mini .bad b{color:var(--bad)}
+.mini .zero b{color:var(--muted);opacity:.55}
+.paybar{border-radius:8px;padding:6px 8px;font-size:.88rem;display:grid;gap:6px;text-align:center}
+.paybar.ok{background:var(--ok-bg);color:var(--ok)}
+.paybar.bad{background:var(--bad-bg);color:var(--bad)}
+.paybar .chips{justify-content:center}
 .list.pair .actions{gap:6px}
 
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
@@ -639,17 +652,31 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const list = active();
     if(!list.length) return noMembers();
     const t = today();
+    const past = sch.filter(i => i.date <= t && i.date >= S.settings.start);
+    const held = past.filter(i => i.status === "held" || i.status === "single").length;
+    const paused = past.filter(i => i.status === "paused");
     const rows = list.map(m => {
       let p=0, l=0, a=0;
       Object.keys(S.att).filter(d => d >= S.settings.start).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
       const owed = m.role === "coach" ? [] : owedBy(m, sch);
       return {m, p, l, a, owed};
     });
+    const owing = rows.filter(r => r.owed.length).length;
     return `
+      <div class="summary">
+        <div class="stat ok"><b>${held}</b><span>已經上了幾堂</span></div>
+        <div class="stat warn"><b>${paused.length}</b><span>請假暫停幾週</span></div>
+        <div class="stat bad"><b>${owing}</b><span>有欠費的隊友</span></div>
+      </div>
       <ul class="list pair">${rows.map(r => `<li class="row">
-        <div class="who"><b>${esc(r.m.name)}</b>${tagHtml(r.m)}<span class="sub">${[["出席", r.p], ["請假", r.l], ["缺席", r.a]].map(([k, n]) => `<span style="white-space:nowrap">${k} ${n}</span>`).join("・")}</span></div>
-        ${r.owed.length ? `<div class="chips"><span class="muted" style="font-size:.85rem">還沒付：</span>${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>` : `<div class="actions"><span class="pill ok">都付清了</span></div>`}
-      </li>`).join("")}</ul>`;
+        <div class="who"><b>${esc(r.m.name)}</b>${tagHtml(r.m)}</div>
+        <div class="mini">${[["ok", "出席", r.p], ["warn", "請假", r.l], ["bad", "缺席", r.a]].map(([c, k, n]) => `<div class="${n ? c : "zero"}"><b>${n}</b><span>${k}</span></div>`).join("")}</div>
+        ${r.owed.length
+          ? `<div class="paybar bad"><b>還沒付 ${r.owed.length} 堂</b><div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div></div>`
+          : `<div class="paybar ok"><b>✓ 都付清了</b></div>`}
+      </li>`).join("")}</ul>
+      <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
+      ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
   }
 
   // 隊友
