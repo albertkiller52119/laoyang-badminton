@@ -125,8 +125,13 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 /* 統計頁：對帳表 */
 .ledger td.ok{color:var(--ok)} .ledger td.bad{color:var(--bad)}
 .ledger small{font-size:.72rem;font-weight:700}
+table.calc small.sub{display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-top:2px}
 .tablewrap table.ledger{min-width:0;font-size:.9rem}
-.tablewrap table.ledger th,.tablewrap table.ledger td{padding:8px 5px}
+.tablewrap table.ledger th,.tablewrap table.ledger td{padding:10px 6px}
+.tablewrap table.ledger th{line-height:1.25;letter-spacing:0;white-space:nowrap}
+.ledger td.d b{display:block;font-variant-numeric:tabular-nums}
+.ledger td.d small{display:block;color:var(--muted);margin-top:2px}
+.ledger td.num small{display:block;margin-top:2px}
 .tablewrap table.ledger td.num{font-size:.92rem}
 @media (prefers-reduced-motion: reduce){.hero-bar i{transition:none}}
 .stat{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center}
@@ -776,16 +781,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="card">
       <h2>財務對帳</h2>
       <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>日期</th><th class="num">人數</th><th class="num">應收</th><th class="num">已收</th><th class="num">付${vp}</th><th class="num">付${cn}</th></tr></thead>
-        <tbody>${rows.map(r => `<tr><td>${md(r.d)}</td><td class="num">${r.n}</td><td class="num">${num(r.due)}</td><td class="num ${r.left ? "bad" : "ok"}">${num(r.got)}${r.left ? `<br><small>差 ${r.left} 人</small>` : ""}</td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
+        <thead><tr><th>日期</th><th class="num">應收</th><th class="num">已收</th><th class="num">付給<br>${vp}</th><th class="num">付給<br>${cn}</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td class="d"><b>${md(r.d)}</b><small>${r.n} 人</small></td><td class="num">${num(r.due)}</td><td class="num ${r.left ? "bad" : "ok"}">${num(r.got)}${r.left ? `<br><small>差 ${r.left} 人</small>` : ""}</td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
       </table></div>
       <table class="calc">
         <tr><td>隊友應付給${tr}</td><td></td><td>${money(sum("due"))}</td></tr>
         <tr><td>已經收到</td><td></td><td>${money(sum("got"))}</td></tr>
         <tr><td>還沒收到</td><td></td><td>${money(sum("due") - sum("got"))}</td></tr>
-        <tr class="total"><td>班費（進位多收的零頭）</td><td>已結清 ${settled.length} 堂</td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
+        <tr class="total"><td>班費<small class="sub">進位多收的零頭・已結清 ${settled.length} 堂</small></td><td></td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
       </table>
-      <p class="muted">「付${vp}」「付${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
+      <p class="muted">「付給${vp}」「付給${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="export-csv">匯出 Excel 備份</button></div>` : ""}
     </div>`;
   }
