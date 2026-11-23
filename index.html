@@ -565,22 +565,23 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     if(!fl.vp && !fl.tr) return "";
     const tr = esc(trName()), vp = esc(vpName());
     const others = fl.ci.ids.filter(id => !fl.vp || id !== fl.vp.id).length;
-    const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr + "自己" : ""].filter(Boolean);
+    const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
+    const num = x => Number(x).toLocaleString("en-US");
     let steps = [];
-    steps.push(`<li><b>大家轉給 ${tr}</b>：每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("、")}不用轉）` : ""}${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
+    steps.push(`<li><b>大家轉帳給${tr}：</b>每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
     if(fl.vp){
       const cf = fees(fl.ci.n);
-      steps.push(`<li><b>${vp} 先付場地費</b>：這堂 ${fl.ci.n} 人，租 <strong>${cf.two ? 2 : 1} 面</strong>（每小時 ${money(cf.rate)} × ${S.settings.venueHours} 小時），共 ${money(fl.venue)} 直接付給館方${fl.vpShare ? `，他的 ${money(fl.vpShare)} 從裡面扣` : `（他請假，不用分攤）`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
+      steps.push(`<li><b>${vp}支付場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，由${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
       if(fl.net > 0){
         const done = fl.reimb;
-        steps.push(`<li><b>${tr} 匯給 ${vp}</b>：${fl.vpShare ? `${money(fl.venue)} − ${money(fl.vpShare)} ＝ <strong>${money(fl.net)}</strong>` : `<strong>${money(fl.net)}</strong>（場地費全額還他）`}
+        steps.push(`<li><b>${tr}匯款給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，匯還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額匯還 <strong>${money(fl.net)}</strong>。`}
           ${done ? `<br><span class="pill ok">已匯款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="reimb-undo" data-date="${d}">取消紀錄</button>` : ""}`
                  : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft.reimbMethod || "LINE Pay") ? " primary" : ""}" data-act="reimb-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="reimb-save" data-date="${d}">記下已匯款</button></div>` : `<br><span class="pill bad">還沒匯</span>`)}</li>`);
       } else if(fl.net < 0){
-        steps.push(`<li><b>${vp} 補給 ${tr}</b>：他的 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong></li>`);
+        steps.push(`<li><b>${vp}補給${tr}：</b>${vp}的課費 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong>。</li>`);
       }
     }
-    steps.push(`<li><b>${tr} 匯給${esc(S.settings.coachNick || "教練")}</b>：${money(fl.coach)}${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
+    steps.push(`<li><b>${tr}匯款給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
     return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
       </div>`;
   }
