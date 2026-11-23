@@ -599,10 +599,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       const r = rec[m.id], tok = key + "|" + m.id;
       const amt = d ? oweAmount(m, d) : defAmt;
       if(!r && d && settledByVenue(m, d)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付館方</span>` : `<span class="pill bad">還沒付館方</span>`}</div></li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付給館方</span>` : `<span class="pill bad">還沒付給館方</span>`}</div></li>`;
       }
       if(!r && d && isTreasurer(m)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已匯給" : "還沒匯給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName())) : ""}${pill(fl.coachPaid, cn)}</div>`; })()}</li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已付給" : "還沒付給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName())) : ""}${pill(fl.coachPaid, cn)}</div>`; })()}</li>`;
       }
       let right;
       if(r){
