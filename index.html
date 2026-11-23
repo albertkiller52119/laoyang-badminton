@@ -283,9 +283,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
   // 季租 2 面場地：從 SEASON_FROM 起不論人數都是 2 面；季內沒列到的週六不上課
-  const SEASON_FROM = "2026-12-12";
+  const SEASON_FROM = "2027-01-02";
   const SEASONS = [
-    { name:"2026 年 12 月", from:"2026-12-01", to:"2026-12-31", dates:["2026-12-12","2026-12-19","2026-12-26"] },
     { name:"2027 年 1～3 月", from:"2027-01-01", to:"2027-03-31", dates:["2027-01-02","2027-01-09","2027-01-16","2027-01-23","2027-02-06","2027-02-13","2027-02-20","2027-02-27","2027-03-06","2027-03-13","2027-03-20","2027-03-27"] },
   ];
   const seasonOf = d => SEASONS.find(x => d >= x.from && d <= x.to) || null;
@@ -350,6 +349,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 季租日期清單
   const seasonItems = () => { const t = today(), s = S.settings, per = s.venueHours * s.venueRate2;
     return SEASONS.filter(x => x.to >= t).map(x => `<li><strong>${x.name}（${x.dates.length} 堂）：</strong>${x.dates.map(d => d < t ? `<s>${md(d)}</s>` : md(d)).join("、")}<br><span class="muted">季租場地費 ${x.dates.length} 堂 × ${money(per)}＝${money(x.dates.length * per)}</span></li>`).join(""); };
+  // 季租開始前照原規則（人數決定 1 面或 2 面）
+  const preSeason = () => today() < SEASON_FROM && S.settings.bigMin > 0;
+  const preItem = extra => { const s = S.settings, big = s.bigMin;
+    return `<li><strong>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：</strong>照原規則，${big} 人以上使用 2 面（${money(s.venueRate2)}／時）、${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）。${extra || ""}</li>`; };
   // 點名頁：請假規則
   const leaveBox = () => { return `<details class="rules">
     <summary><b>請假規則・場地安排</b></summary>
@@ -360,6 +363,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     </ul>
     <b>場地安排</b>
     <ul class="rule-list">
+      ${preSeason() ? preItem() : ""}
       <li><strong>季租 2 面場地：</strong>自 ${md(SEASON_FROM)} 起改為季租 2 面場地，不論出席人數都使用 2 面，場地費由當天出席的人一起分攤。</li>
       ${seasonItems()}
     </ul>
@@ -369,13 +373,15 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const s = S.settings, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
     const ci = d ? classInfo(d) : null, f = ci && ci.n ? fees(ci.n, d) : null, lv = d ? leaveCount(d) : 0;
     const num = x => Number(x).toLocaleString("en-US");
+    const pre = !!d && d < SEASON_FROM;
     return `<details class="rules">
     <summary><b>收費小提醒</b></summary>
     <ul class="rule-list">
       <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤。</li>
-      <li><strong>場地季租：</strong>${vp}負責向館方季租 2 面場地，並先整季預付場地費；每堂${vp}自己的課費直接扣除，剩餘的場地費再由${tr}每堂付還。</li>
-      <li><strong>每堂費用：</strong>教練費 ${money(s.coachHours * s.coachRate)}＋場地費 ${money(s.venueHours * s.venueRate2)}（2 面 ${money(s.venueRate2)}／時 × ${s.venueHours} 小時）＝${money(s.coachHours * s.coachRate + s.venueHours * s.venueRate2)}。${f ? `這堂出席 ${ci.n} 人${lv ? `（${lv} 人請假）` : ""}，每人 <strong>${money(ci.pp)}</strong>。` : ""}</li>
-      <li><strong>人少每人就多：</strong>場地固定 2 面，出席的人越少、每人分攤越多，例如 ${[8, 7, 6, 5, 4].map(k => `${k} 人 ${money(Math.ceil((s.coachHours * s.coachRate + s.venueHours * s.venueRate2) / k))}`).join("、")}。請假請盡早告知。</li>
+      ${preSeason() || pre ? preItem(pre && f ? `這堂出席 ${ci.n} 人${lv ? `（${lv} 人請假）` : ""}，開 ${f.two ? 2 : 1} 面，每人 <strong>${money(ci.pp)}</strong>。` : "") : ""}
+      <li><strong>場地季租：</strong>自 ${md(SEASON_FROM)} 起，${vp}負責向館方季租 2 面場地，並先整季預付場地費；每堂${vp}自己的課費直接扣除，剩餘的場地費再由${tr}每堂付還。</li>
+      <li><strong>季租每堂費用：</strong>教練費 ${money(s.coachHours * s.coachRate)}＋場地費 ${money(s.venueHours * s.venueRate2)}（2 面 ${money(s.venueRate2)}／時 × ${s.venueHours} 小時）＝${money(s.coachHours * s.coachRate + s.venueHours * s.venueRate2)}。${f && !pre ? `這堂出席 ${ci.n} 人${lv ? `（${lv} 人請假）` : ""}，每人 <strong>${money(ci.pp)}</strong>。` : ""}</li>
+      <li><strong>人少每人就多：</strong>季租後場地固定 2 面，出席的人越少、每人分攤越多，例如 ${[8, 7, 6, 5, 4].map(k => `${k} 人 ${money(Math.ceil((s.coachHours * s.coachRate + s.venueHours * s.venueRate2) / k))}`).join("、")}。請假請盡早告知。</li>
       ${seasonItems()}
       <li><strong>繳費方式：</strong>課費統一交給${tr}，可使用 LINE Pay 或現金。</li>
     </ul>
@@ -660,7 +666,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         <h3>隊友課費（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
-        ${special.length ? `<h3>${special.map(m => esc(m.name)).join("・")} 收付情況</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
+        ${special.length ? `<h3>財務、場地 收付情況</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
         ${flowCard(d, fl)}`;
     }
     h += rulesBox(ci.n && d >= S.settings.start ? d : null);
