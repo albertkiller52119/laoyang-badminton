@@ -854,7 +854,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       case "venue-method": S.draft.venueMethod = b.dataset.v; render(); break;
       case "venue-save":
       case "venue-undo": {
-        if(act === "venue-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "venue-save") doc.venuePaid = { amount: fl.venue, date: today(), method: S.draft.venueMethod || "LINE Pay" };
@@ -866,7 +865,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "coach-save":
       case "coach-undo": {
-        if(act === "coach-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "coach-save") doc.coachPaid = { amount: fl.coach, date: today(), method: S.draft.coachMethod || "LINE Pay" };
@@ -878,7 +876,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "reimb-save":
       case "reimb-undo": {
-        if(act === "reimb-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "reimb-save") doc.reimb = { amount: fl.net, date: today(), method: S.draft.reimbMethod || "LINE Pay" };
