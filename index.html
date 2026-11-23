@@ -693,7 +693,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <div class="fields">
             <label class="field"><span>姓名</span><input id="editName" value="${v("editName", m.name)}"></label>
             <label class="field"><span>分級</span><select id="editCls">${CLASSES.map(c => `<option${(d.editCls ?? (m.cls||"未分級"))===c?" selected":""}>${c}</option>`).join("")}</select></label>
-            <label class="field"><span>電話</span><input id="editPhone" type="tel" value="${v("editPhone", m.phone)}"></label>
             <label class="field"><span>備註</span><input id="editNote" value="${v("editNote", m.note)}"></label>
           </div>
           <div class="actions"><button class="btn primary" data-act="edit-save" data-id="${m.id}">存檔</button><button class="btn" data-act="edit" data-id="">先不要</button></div>
@@ -704,7 +703,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         : `<button class="btn small danger" data-act="del-ask" data-id="${m.id}"${dis()}>刪除</button>`;
       return `<li class="row${S.delConfirm === m.id ? " wide" : ""}">
         <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}
-          ${(m.phone||m.note) ? `<span class="sub">${esc([m.phone, m.note].filter(Boolean).join("・"))}</span>` : ""}</div>
+          ${m.note ? `<span class="sub">${esc(m.note)}</span>` : ""}</div>
         <div class="actions">${m.active === false
           ? `<button class="btn small" data-act="toggle" data-id="${m.id}"${dis()}>回來上課</button>${delBtns}`
           : `<button class="btn small" data-act="edit" data-id="${m.id}"${dis()}>編輯</button><button class="btn small" data-act="toggle" data-id="${m.id}"${dis()}>暫時停課</button>`}</div>
@@ -723,7 +722,6 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="fields">
           <label class="field"><span>姓名</span><input id="newName" placeholder="例如：陳小美" value="${v("newName")}"${dis()}></label>
           <label class="field"><span>分級</span><select id="newCls"${dis()}>${CLASSES.map(c => `<option${(d.newCls||"未分級")===c?" selected":""}>${c}</option>`).join("")}</select></label>
-          <label class="field"><span>電話（可以不填）</span><input id="newPhone" type="tel" value="${v("newPhone")}"${dis()}></label>
           <label class="field"><span>備註（可以不填）</span><input id="newNote" placeholder="例如：運輪放球館" value="${v("newNote")}"${dis()}></label>
         </div>
         <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>
@@ -935,23 +933,23 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         const name = document.getElementById("newName").value.trim();
         if(!name){ toast("請先填姓名"); document.getElementById("newName").focus(); break; }
         const data = { name, role: "player", cls: document.getElementById("newCls").value,
-          phone: document.getElementById("newPhone").value.trim(), note: document.getElementById("newNote").value.trim(),
+          phone: "", note: document.getElementById("newNote").value.trim(),
           active: true, createdAt: Date.now() };
         const newId = "m" + Date.now().toString(36);
         S.members = S.members.concat([{ id: newId, ...data }]).sort(byClassThenStroke);
-        S.draft.newName = S.draft.newPhone = S.draft.newNote = "";
+        S.draft.newName = S.draft.newNote = "";
         write("members/"+newId, save("members", newId, data));
         toast(`歡迎 ${name} 加入！`);
         render();
         break;
       }
-      case "edit": S.editId = id || null; ["editName","editCls","editPhone","editNote"].forEach(k => delete S.draft[k]); render(); break;
+      case "edit": S.editId = id || null; ["editName","editCls","editNote"].forEach(k => delete S.draft[k]); render(); break;
       case "edit-save": {
         const m = S.members.find(x => x.id === id); if(!m) break;
         const name = document.getElementById("editName").value.trim();
         if(!name){ toast("姓名不能空白喔"); break; }
         const data = { name, role: "player", cls: document.getElementById("editCls").value,
-          phone: document.getElementById("editPhone").value.trim(), note: document.getElementById("editNote").value.trim(),
+          phone: m.phone || "", note: document.getElementById("editNote").value.trim(),
           active: m.active !== false, createdAt: m.createdAt || Date.now() };
         S.members = S.members.map(x => x.id === id ? { id, ...data } : x).sort(byClassThenStroke);
         S.editId = null; render();
