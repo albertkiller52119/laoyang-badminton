@@ -193,6 +193,7 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:70
 .paybar.bad{background:var(--bad-bg);color:var(--bad)}
 .paybar .chips{justify-content:center}
 .list.pair .actions{gap:6px}
+.list.pair .actions.stack{align-items:flex-start}
 
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
@@ -642,7 +643,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         <h3>隊友課費（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
-        ${special.length ? `<h3>${special.map(m => esc(m.name)).join("・")} 收付情況</h3>${payList(key, special, ci.pp, d)}` : ""}
+        ${special.length ? `<h3>${special.map(m => esc(m.name)).join("・")} 收付情況</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
         ${flowCard(d, fl)}`;
     }
     h += rulesBox(ci.n && d >= S.settings.start ? d : null);
