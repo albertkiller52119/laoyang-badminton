@@ -1,0 +1,16 @@
+{
+  "name": "老楊輪羽班點名簿",
+  "short_name": "輪羽點名簿",
+  "description": "老楊輪羽班的點名、繳費與出席統計",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef3f5",
+  "theme_color": "#0a4a5f",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

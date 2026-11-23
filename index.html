@@ -6,6 +6,12 @@
 <meta name="description" content="老楊輪羽班的點名、繳費與出席統計">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%230a4a5f'/%3E%3Cpath d='M12 9 L20 24 L28 9 Z' fill='white'/%3E%3Ccircle cx='20' cy='28' r='5' fill='%23f0b400'/%3E%3C/svg%3E">
 <title>老楊輪羽班點名簿</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0a4a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="輪羽點名簿">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
@@ -95,6 +101,41 @@ main{padding-block:18px 48px;display:grid;gap:16px}
 .rules ol.rule-list ul{margin-top:4px}
 
 .summary{display:flex;flex-wrap:nowrap;gap:6px}
+/* 繳費頁：這堂摘要卡 */
+.hero{background:linear-gradient(135deg,var(--accent) 0%,#0a4a5f 100%);color:#fff;border-radius:var(--radius);padding:16px 18px;display:grid;gap:10px;box-shadow:0 6px 18px rgba(10,74,95,.18)}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:.95rem;opacity:.95}
+.hero-chip{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:2px 10px;font-size:.85rem;white-space:nowrap}
+.hero-main{display:flex;align-items:baseline;gap:8px}
+.hero-main b{font-size:2.4rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;color:#ffc933}
+.hero-main span{font-weight:700;opacity:.9}
+.hero-meta{font-size:.9rem;opacity:.92;line-height:1.5}
+.hero-prog{display:grid;gap:5px;font-size:.88rem;font-weight:700}
+.hero-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden}
+.hero-bar i{display:block;height:100%;border-radius:999px;background:#ffc933;transition:width .3s}
+.hero-note{font-size:.82rem;opacity:.85;border-top:1px dashed rgba(255,255,255,.3);padding-top:8px}
+/* 錢怎麼走：流向圖 */
+.flowmap{display:grid;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.fm-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
+.fm-node{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-weight:900;font-size:.9rem;white-space:nowrap}
+.fm-node.hub{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.fm-arrow{position:relative;text-align:center;font-size:.82rem;font-weight:900;color:var(--accent);padding-bottom:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fm-arrow::after{content:"";position:absolute;left:4px;right:10px;bottom:2px;border-bottom:2px solid var(--accent)}
+.fm-arrow::before{content:"";position:absolute;right:2px;bottom:-2px;border:5px solid transparent;border-left:8px solid var(--accent)}
+/* 規則收合 */
+details.rules > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.rules > summary::-webkit-details-marker{display:none}
+details.rules > summary::after{content:"點開看 ▾";font-size:.8rem;font-weight:700;color:var(--warn)}
+details.rules[open] > summary::after{content:"收起 ▴"}
+.deadline{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius);background:var(--surface);border:1px dashed var(--line);font-size:.92rem}
+.deadline b{color:var(--warn)}
+.deadline.past b{color:var(--muted)}
+/* 統計頁：對帳表 */
+.ledger td.ok{color:var(--ok)} .ledger td.bad{color:var(--bad)}
+.ledger small{font-size:.72rem;font-weight:700}
+.tablewrap table.ledger{min-width:0;font-size:.9rem}
+.tablewrap table.ledger th,.tablewrap table.ledger td{padding:8px 5px}
+.tablewrap table.ledger td.num{font-size:.92rem}
+@media (prefers-reduced-motion: reduce){.hero-bar i{transition:none}}
 .stat{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center}
 .stat b{display:block;font-size:1.15rem;font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat span{display:block;font-size:.75rem;color:var(--muted);line-height:1.25}
@@ -266,7 +307,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const noticeEl = document.getElementById("notice");
   const toastEl = document.getElementById("toast");
   let toastTimer;
-  function toast(msg){ toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 2400); }
+  function toast(msg){ if(typeof staged !== "undefined" && staged.size && /^記下了：/.test(msg)) msg = msg.replace(/^記下了：/, "已暫存：") + "（記得按確認儲存）"; toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 2400); }
   function notice(msg){ noticeEl.textContent = msg || ""; noticeEl.hidden = !msg; }
   // 資料存在 Google 試算表，透過 Apps Script 的資料接口（Api.gs）讀寫
   const API = "https://script.google.com/macros/s/AKfycbypMOtouElSK96qRdenjKcePDF58TBFmw1pree2OhDxBy0iXvNorCRlhpGdFkCYEbKe/exec";
@@ -297,7 +338,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
   // 點名頁：請假規則
-  const leaveBox = () => { const big = S.settings.bigMin; return `<div class="rules">
+  const leaveBox = () => { const big = S.settings.bigMin; return `<details class="rules">
+    <summary><b>請假規則・場地安排</b></summary>
     <b>請假規則</b>
     <ul class="rule-list">
       <li><strong>事先請假：</strong>最晚請提前一週告知，課程費用由實際出席人數平均分攤。若上課人數少於 4 人，則由大家討論是否停課。</li>
@@ -308,23 +350,21 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <li><strong>${big - 1} 人以下：</strong>使用 1 面場地。</li>
       <li><strong>${big} 人以上：</strong>使用 2 面場地（包場）。</li>
     </ul>` : ""}
-  </div>`; };
+  </details>`; };
   // 繳費頁：收費小提醒
   const rulesBox = d => {
     const s = S.settings, big = s.bigMin, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
     const ci = d ? classInfo(d) : null, f = ci && ci.n ? fees(ci.n) : null, lv = d ? leaveCount(d) : 0;
     const num = x => Number(x).toLocaleString("en-US");
-    const now = f ? `<li><strong>這堂（${md(d)}）：</strong>出席 ${ci.n} 人${lv ? `（${lv} 人請假）` : ""}，使用 <strong>${f.two ? 2 : 1} 面</strong>場地；教練費 ${num(f.coach)}＋場地費 ${num(f.venue)}＝${num(f.session)}，${ci.n} 人平分，<strong>每人 ${money(ci.pp)}</strong>。</li>` : "";
-    return `<div class="rules">
-    <b>收費小提醒</b>
+    return `<details class="rules">
+    <summary><b>收費小提醒</b></summary>
     <ul class="rule-list">
-      ${now}
       <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤。</li>
       <li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}付還。</li>
       ${big > 0 ? `<li><strong>場地面數：</strong>${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）；${big} 人以上使用 2 面（${money(s.venueRate2)}／時）。${f ? `這堂 ${ci.n} 人，開 ${f.two ? 2 : 1} 面。` : ""}</li>` : ""}
       <li><strong>繳費方式：</strong>課費統一交給${tr}，可使用 LINE Pay 或現金。</li>
     </ul>
-  </div>`;
+  </details>`;
   };
 
   // ---------- 課表與費用 ----------
@@ -550,7 +590,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <button class="nav" data-act="date" data-n="1" aria-label="下一次上課">›</button>
       </div>
       ${S.date !== nextClassDate(sch) ? `<div><button class="link" data-act="date-next">回到最近一次上課</button></div>` : ""}
-      ${classBanner(S.date)}`;
+      ${classBanner(S.date)}
+      ${(() => { const dl = shiftDate(S.date, -7), past = today() > dl; return S.date >= today() ? `<div class="deadline${past ? " past" : ""}">🗓️ <span>這堂請假截止：<b>${labelDate(dl)}</b>${past ? "（已過，之後請假一樣要分攤）" : " 前告知"}</span></div>` : ""; })()}`;
     if(!list.length) return h + noMembers();
     h += `
       <div class="summary">
@@ -567,7 +608,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
-      ${adminHintP("點一下就存好了；點錯的話，再點一次同一個按鈕就能取消。")}
+      ${adminHintP("點完記得按畫面下方的「確認儲存」；點錯的話，再點一次同一個按鈕就能取消。")}
       ${leaveBox()}`;
     return h;
   }
@@ -597,9 +638,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const listed = [...unpaid, ...paid, ...who.filter(m => !mustPay.includes(m) && rec[m.id])];
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
-        <div class="summary">
-          <div class="stat"><b>${money(ci.pp)}</b><span>每人</span></div>          <div class="stat bad"><b>${unpaid.length}</b><span>還沒轉</span></div>
-        </div>
+        ${heroCard(d, ci, mustPay.length, paid.length)}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         <h3>隊友課費（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
@@ -608,6 +647,20 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     }
     h += rulesBox(ci.n && d >= S.settings.start ? d : null);
     return h;
+  }
+
+  // 繳費頁最上面：這堂摘要
+  function heroCard(d, ci, need, done){
+    const num = x => Number(x).toLocaleString("en-US");
+    const f = fees(ci.n), lv = leaveCount(d), extra = ci.pp * ci.n - f.session;
+    const pct = need ? Math.round(done / need * 100) : 100;
+    return `<div class="hero">
+      <div class="hero-top"><span>${labelDate(d)} 這堂</span><span class="hero-chip">${f.two ? 2 : 1} 面場地</span></div>
+      <div class="hero-main"><b>${money(ci.pp)}</b><span>每人</span></div>
+      <div class="hero-meta">出席 ${ci.n} 人${lv ? `・請假 ${lv} 人` : ""}<br>教練費 ${num(f.coach)}＋場地費 ${num(f.venue)}＝${num(f.session)}，${ci.n} 人平分</div>
+      <div class="hero-prog"><span>已付 ${done}／${need} 人</span><div class="hero-bar" role="progressbar" aria-label="已付人數" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div></div>
+      ${extra > 0 ? `<div class="hero-note">每人金額進位到整數，這堂多收 ${money(extra)}，存入班費。</div>` : ""}
+    </div>`;
   }
 
   // 某人這堂要繳多少（訂場地的人如果課費比場地費多，只要補差額）
@@ -638,7 +691,15 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
     }
     steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。</li>`);
-    return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
+    const payers = fl.ci.ids.filter(id => !(fl.vp && id === fl.vp.id) && !(fl.tr && id === fl.tr.id)).length;
+    const row = (a, amt, b, hubA, hubB) => `<div class="fm-row"><span class="fm-node${hubA ? " hub" : ""}">${a}</span><span class="fm-arrow">${amt}</span><span class="fm-node${hubB ? " hub" : ""}">${b}</span></div>`;
+    const map = `<div class="flowmap" role="img" aria-label="錢的流向圖">
+      ${row(`隊友 ${payers} 人`, `每人 ${num(fl.ci.pp)}`, tr, false, true)}
+      ${fl.vp ? row(vp, num(fl.venue), "館方", false, false) : ""}
+      ${fl.vp && fl.net > 0 ? row(tr, num(fl.net), vp, true, false) : ""}
+      ${row(tr, num(fl.coach), esc(S.settings.coachNick || "教練"), true, false)}
+    </div>`;
+    return `<div class="card flow"><h2>錢怎麼走？</h2>${map}<ol class="steps">${steps.join("")}</ol>
       </div>`;
   }
 
@@ -702,7 +763,63 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           : `<div class="paybar ok"><b>✓ 都付清了</b></div>`}
       </li>`).join("")}</ul>
       <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
+      ${ledgerCard(sch)}
       ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
+  }
+
+  // 吉哥對帳：有點名或收款紀錄、或已經上過的每一堂
+  function ledgerRows(sch){
+    const t = today();
+    return sch.filter(i => i.date >= S.settings.start && billable(i.status) && (i.date <= t || S.att[i.date] || S.pay[payKey(i.date)]))
+      .map(i => { const d = i.date, ci = classInfo(d); if(!ci.n) return null;
+        const fl = flowOf(d), f = fees(ci.n), rec = (S.pay[payKey(d)] || {}).records || {};
+        const must = players().filter(m => ci.ids.includes(m.id) && !selfSettled(m, d));
+        const due = must.length * ci.pp, got = must.reduce((a, m) => a + (rec[m.id] ? Number(rec[m.id].amount || ci.pp) : 0), 0);
+        return { d, n: ci.n, pp: ci.pp, due, got, left: must.filter(m => !rec[m.id]).length,
+          reimb: fl.vp && fl.net > 0 ? fl.net : 0, reimbDone: !!fl.reimb, coach: f.coach, coachDone: !!fl.coachPaid,
+          extra: ci.pp * ci.n - f.session };
+      }).filter(Boolean);
+  }
+  function ledgerCard(sch){
+    const rows = ledgerRows(sch);
+    if(!rows.length) return "";
+    const num = x => Number(x).toLocaleString("en-US"), tr = esc(trName()), vp = esc(vpName()), cn = esc(S.settings.coachNick || "教練");
+    const sum = k => rows.reduce((a, r) => a + r[k], 0);
+    const settled = rows.filter(r => !r.left && (r.reimbDone || !r.reimb) && r.coachDone);
+    const ok = (b, t) => `<td class="num ${b ? "ok" : "bad"}">${b ? "✓" : t}</td>`;
+    return `<div class="card">
+      <h2>${tr}對帳</h2>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr><th>日期</th><th class="num">人數</th><th class="num">應收</th><th class="num">已收</th><th class="num">付${vp}</th><th class="num">付${cn}</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td>${md(r.d)}</td><td class="num">${r.n}</td><td class="num">${num(r.due)}</td><td class="num ${r.left ? "bad" : "ok"}">${num(r.got)}${r.left ? `<br><small>差 ${r.left} 人</small>` : ""}</td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
+      </table></div>
+      <table class="calc">
+        <tr><td>隊友應付給${tr}</td><td></td><td>${money(sum("due"))}</td></tr>
+        <tr><td>已經收到</td><td></td><td>${money(sum("got"))}</td></tr>
+        <tr><td>還沒收到</td><td></td><td>${money(sum("due") - sum("got"))}</td></tr>
+        <tr class="total"><td>班費（進位多收的零頭）</td><td>已結清 ${settled.length} 堂</td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
+      </table>
+      <p class="muted">「付${vp}」「付${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
+      ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="export-csv">匯出 Excel 備份</button></div>` : ""}
+    </div>`;
+  }
+  function exportCsv(){
+    const sch = schedule(), out = [["日期","姓名","分級","出席狀態","應付","已付"]];
+    const STN = { present: "出席", leave: "請假", absent: "缺席" };
+    ledgerRows(sch).forEach(r => {
+      const rec = (S.att[r.d] && S.att[r.d].records) || {}, pay = (S.pay[payKey(r.d)] || {}).records || {};
+      const ids = classInfo(r.d).ids;
+      players().forEach(m => {
+        const going = ids.includes(m.id), self = going && selfSettled(m, r.d);
+        out.push([r.d, m.name, m.cls || "", STN[rec[m.id]] || (going ? "出席" : ""), going ? r.pp : 0, !going ? "" : self ? "免轉（財務／場地）" : pay[m.id] ? "已付" : "還沒付"]);
+      });
+    });
+    const csv = "\ufeff" + out.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = (S.settings.group || "點名簿") + "_備份_" + today() + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("已下載備份，可以用 Excel 打開");
   }
 
   // 隊友
@@ -915,6 +1032,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         toast(`${nameOf(id)} 改回還沒付`);
         break;
       }
+      case "export-csv": exportCsv(); break;
       case "copy-class":
       case "copy-owed": {
         let text;
