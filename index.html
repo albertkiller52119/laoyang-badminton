@@ -130,13 +130,15 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:70
 .seg.two{grid-template-columns:repeat(2,1fr)}
 .seg.two button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 /* 點名：兩人一排 */
-.list.pair{display:grid;grid-template-columns:1fr 1fr}
-.list.pair .row{flex-direction:column;align-items:stretch;justify-content:space-between;gap:8px;padding:10px;border-top:0;min-width:0}
+.list.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.list.pair .row{flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:space-between;gap:8px;padding:10px;border-top:0;min-width:0}
 .list.pair .row:nth-child(n+3){border-top:1px solid var(--line)}
 .list.pair .row:nth-child(odd){border-right:1px solid var(--line)}
 .list.pair .who{flex:none;gap:4px 6px}
 .list.pair .seg{flex:none;max-width:none;grid-template-columns:repeat(var(--n,3),1fr);gap:4px}
 .list.pair .seg button{min-height:46px;padding:0;font-size:.92rem}
+.list.pair .row.wide{grid-column:1/-1;border-right:0}
+.list.pair .actions{gap:6px}
 
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
@@ -545,7 +547,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         </div>
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         <h3>隊友課費（還沒轉的排前面）</h3>
-        ${payList(key, listed, ci.pp, d)}
+        ${payList(key, listed, ci.pp, d, "pair")}
         ${special.length ? `<h3>${special.map(m => esc(m.name)).join("・")} 收付情況</h3>${payList(key, special, ci.pp, d)}` : ""}
         ${flowCard(d, fl)}`;
     }
@@ -568,20 +570,20 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
     const num = x => Number(x).toLocaleString("en-US");
     let steps = [];
-    steps.push(`<li><b>大家轉帳給${tr}：</b>每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
+    steps.push(`<li><b>付給${tr}：</b>每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
     if(fl.vp){
       const cf = fees(fl.ci.n);
-      steps.push(`<li><b>${vp}支付場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，由${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
+      steps.push(`<li><b>場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，請${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
       if(fl.net > 0){
         const done = fl.reimb;
-        steps.push(`<li><b>${tr}匯款給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，匯還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額匯還 <strong>${money(fl.net)}</strong>。`}
+        steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}
           ${done ? `<br><span class="pill ok">已匯款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="reimb-undo" data-date="${d}">取消紀錄</button>` : ""}`
                  : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft.reimbMethod || "LINE Pay") ? " primary" : ""}" data-act="reimb-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="reimb-save" data-date="${d}">記下已匯款</button></div>` : `<br><span class="pill bad">還沒匯</span>`)}</li>`);
       } else if(fl.net < 0){
         steps.push(`<li><b>${vp}補給${tr}：</b>${vp}的課費 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong>。</li>`);
       }
     }
-    steps.push(`<li><b>${tr}匯款給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
+    steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
     return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
       </div>`;
   }
@@ -591,9 +593,9 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const payLabel = key => `${md(key.slice(6))} `;
 
   // 一份繳費名單
-  function payList(key, list, defAmt, d){
+  function payList(key, list, defAmt, d, cls = ""){
     const rec = (S.pay[key] && S.pay[key].records) || {};
-    return `<ul class="list">` + list.map(m => {
+    return `<ul class="list${cls ? " " + cls : ""}">` + list.map(m => {
       const r = rec[m.id], tok = key + "|" + m.id;
       const amt = d ? oweAmount(m, d) : defAmt;
       if(!r && d && settledByVenue(m, d)){
@@ -624,9 +626,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           <div class="actions"><button class="btn primary" data-act="pay-save" data-key="${key}" data-id="${m.id}">確認收款</button><button class="btn" data-act="pay-open" data-id="">先不要</button></div>
         </div>`;
       }
-      return `<li class="row">
+      const wide = (!r && S.payOpen === tok) || (r && S.payConfirm === tok);
+      return `<li class="row${wide ? " wide" : ""}">
         <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}
-          ${r ? `<span class="sub">${money(r.amount)}・${esc(r.method||"")}・${esc(md(r.date||today()))} 收</span>` : ""}</div>
+          ${r ?`<span class="sub">${money(r.amount)}・${esc(r.method||"")}・${esc(md(r.date||today()))} 收</span>` : ""}</div>
         ${right}${form}</li>`;
     }).join("") + `</ul>`;
   }
