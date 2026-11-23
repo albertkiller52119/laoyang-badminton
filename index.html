@@ -286,10 +286,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     return `<div class="rules">
     <b>收費小提醒</b>
     <ul class="rule-list">
-      <li><strong>大家一起分攤</strong><br>每堂的教練費＋場地費，由當天有來上課的人平分。</li>
-      <li><strong>課費交給${tr}</strong><br>用 LINE Pay 或現金都可以。</li>
-      <li><strong>場地費${vp}先付</strong><br>${vp}自己的課費直接從場地費扣掉，多出來的${tr}再匯還給他。</li>
-      ${big > 0 ? `<li><strong>${vp}訂場地時看一下人數</strong><br>${big - 1} 人以下訂 1 面就夠了；${big} 人以上再訂 2 面（包場）。我們是身障選手，場地打半價：1 面每小時 ${money(s.venueRate)}、2 面每小時 ${money(s.venueRate2)}。</li>` : ""}
+      <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤。</li>
+      <li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}匯還。</li>
+      ${big > 0 ? `<li><strong>場地面數：</strong>${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）；${big} 人以上使用 2 面（${money(s.venueRate2)}／時）。</li>` : ""}
+      <li><strong>繳費方式：</strong>課費統一交給${tr}，可使用 LINE Pay 或現金。</li>
     </ul>
   </div>`;
   };
