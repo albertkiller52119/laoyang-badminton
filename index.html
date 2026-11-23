@@ -267,14 +267,12 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
-  // 班規提醒：怎麼收費、錢交給誰、請假缺席怎麼算
+  // 小提醒：提醒芳玉依人數訂場地
   const rulesBox = () => {
     const big = S.settings.bigMin, vp = esc(S.settings.vpNick || "芳玉");
     return `<div class="rules">
     <b>小提醒</b>
     <ul class="rule-list">
-      <li><strong>要請假，記得提早說一聲</strong><br>可以選「整班暫停」，或「其他人照上」，由當天來的人一起分攤費用。</li>
-      <li><strong>沒先請假就沒來</strong><br>課還是照上，這堂的費用一樣要分攤喔！</li>
       ${big > 0 ? `<li><strong>${vp}訂場地時看一下人數</strong><br>${big - 1} 人以下訂 1 面就夠了；${big} 人以上再訂 2 面（包場）。</li>` : ""}
     </ul>
   </div>`;
@@ -549,7 +547,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     let steps = [];
     steps.push(`<li><b>大家轉給 ${tr}</b>：每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("、")}不用轉）` : ""}${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
     if(fl.vp){
-      steps.push(`<li><b>${vp} 先付場地費</b>：${money(fl.venue)} 直接付給館方${fl.vpShare ? `，他的 ${money(fl.vpShare)} 從裡面扣` : `（他請假，不用分攤）`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
+      const cf = fees(fl.ci.n);
+      steps.push(`<li><b>${vp} 先付場地費</b>：這堂 ${fl.ci.n} 人，租 <strong>${cf.two ? 2 : 1} 面</strong>（每小時 ${money(cf.rate)} × ${S.settings.venueHours} 小時），共 ${money(fl.venue)} 直接付給館方${fl.vpShare ? `，他的 ${money(fl.vpShare)} 從裡面扣` : `（他請假，不用分攤）`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
       if(fl.net > 0){
         const done = fl.reimb;
         steps.push(`<li><b>${tr} 匯給 ${vp}</b>：${fl.vpShare ? `${money(fl.venue)} − ${money(fl.vpShare)} ＝ <strong>${money(fl.net)}</strong>` : `<strong>${money(fl.net)}</strong>（場地費全額還他）`}
@@ -575,7 +574,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       const r = rec[m.id], tok = key + "|" + m.id;
       const amt = d ? oweAmount(m, d) : defAmt;
       if(!r && d && settledByVenue(m, d)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">先付場地費 ${money(flowOf(d).venue)} 給館方，他的 ${money(defAmt)} 直接從裡面扣</span></div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付館方</span>` : `<span class="pill bad">還沒付館方</span>`}</div></li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">先付場地費 ${money(flowOf(d).venue)}（${fees(flowOf(d).ci.n).two ? 2 : 1} 面）給館方，他的 ${money(defAmt)} 直接從裡面扣</span></div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付館方</span>` : `<span class="pill bad">還沒付館方</span>`}</div></li>`;
       }
       if(!r && d && isTreasurer(m)){
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}<span class="sub">錢都由他收，他自己的 ${money(defAmt)} 直接放進班費</span></div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已匯給" : "還沒匯給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName()) + " " + money(fl.net)) : ""}${pill(fl.coachPaid, cn + " " + money(fl.coach))}</div>`; })()}</li>`;
