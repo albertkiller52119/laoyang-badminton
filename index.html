@@ -129,6 +129,14 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:70
 .seg button[aria-pressed="true"][data-s="absent"]{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
 .seg.two{grid-template-columns:repeat(2,1fr)}
 .seg.two button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+/* 點名：兩人一排 */
+.list.pair{display:grid;grid-template-columns:1fr 1fr}
+.list.pair .row{flex-direction:column;align-items:stretch;justify-content:space-between;gap:8px;padding:10px;border-top:0;min-width:0}
+.list.pair .row:nth-child(n+3){border-top:1px solid var(--line)}
+.list.pair .row:nth-child(odd){border-right:1px solid var(--line)}
+.list.pair .who{flex:none;gap:4px 6px}
+.list.pair .seg{flex:none;max-width:none;grid-template-columns:repeat(var(--n,3),1fr);gap:4px}
+.list.pair .seg button{min-height:46px;padding:0;font-size:.92rem}
 
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
@@ -493,12 +501,12 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat warn"><b>${c.leave}</b><span>請假</span></div>
         <div class="stat bad"><b>${c.absent}</b><span>缺席</span></div>      </div>
       ${S.canWrite && unmarked && (!c.leave || st === "single") ? `<div class="actions"><button class="btn" data-act="all-present"${dis()}>其他人都到了，全部標出席</button></div>` : ""}
-      <ul class="list">` +
+      <ul class="list pair">` +
       list.map(m => {
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
-          <div class="seg" role="group" aria-label="${esc(m.name)} 的出席狀態">
+          <div class="seg" style="--n:${st === "single" ? 2 : 3}" role="group" aria-label="${esc(m.name)} 的出席狀態">
             ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
