@@ -267,15 +267,24 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
-  // 小提醒：請假規則＋提醒芳玉依人數訂場地
-  const rulesBox = () => {
-    const big = S.settings.bigMin, vp = esc(S.settings.vpNick || "芳玉");
-    return `<div class="rules">
-    <b>小提醒</b>
+  // 點名頁：請假規則
+  const leaveBox = () => `<div class="rules">
+    <b>請假規則</b>
     <ul class="rule-list">
       <li><strong>要請假，記得提早說一聲</strong><br>可以選「整班暫停」，或「其他人照上」，由當天來的人一起分攤費用。</li>
       <li><strong>沒先請假就沒來</strong><br>課還是照上，這堂的費用一樣要分攤喔！</li>
-      ${big > 0 ? `<li><strong>${vp}訂場地時看一下人數</strong><br>${big - 1} 人以下訂 1 面就夠了；${big} 人以上再訂 2 面（包場）。</li>` : ""}
+    </ul>
+  </div>`;
+  // 繳費頁：收費小提醒
+  const rulesBox = () => {
+    const s = S.settings, big = s.bigMin, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
+    return `<div class="rules">
+    <b>收費小提醒</b>
+    <ul class="rule-list">
+      <li><strong>大家一起分攤</strong><br>每堂的教練費＋場地費，由當天有來上課的人平分。</li>
+      <li><strong>課費交給${tr}</strong><br>用 LINE Pay 或現金都可以。</li>
+      <li><strong>場地費${vp}先付</strong><br>${vp}自己的課費直接從場地費扣掉，多出來的${tr}再匯還給他。</li>
+      ${big > 0 ? `<li><strong>${vp}訂場地時看一下人數</strong><br>${big - 1} 人以下訂 1 面就夠了；${big} 人以上再訂 2 面（包場）。我們是身障選手，場地打半價：1 面每小時 ${money(s.venueRate)}、2 面每小時 ${money(s.venueRate2)}。</li>` : ""}
     </ul>
   </div>`;
   };
@@ -489,7 +498,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           </div></li>`;
       }).join("") + `</ul>
       ${adminHintP("點一下就存好了；點錯的話，再點一次同一個按鈕就能取消。")}
-      ${rulesBox()}`;
+      ${leaveBox()}`;
     return h;
   }
 
