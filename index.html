@@ -210,7 +210,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const METHODS = ["現金","LINE Pay"];
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
-    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:7, minClass:4,
+    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:7,
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
 
@@ -298,14 +298,9 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   function statusOf(d){
     const doc = S.att[d] || {};
     const vals = Object.values(doc.records || {});
-    // 有人請假：剩下的人達 minClass（4 人）就照上，不到就整班停課（自動判斷）
-    if(vals.includes("leave")) return stayCount(d) < (S.settings.minClass || 4) ? "paused" : "single";
+    if(vals.includes("leave")) return doc.mode === "single" ? "single" : "paused";
     if(vals.includes("present") || vals.includes("absent")) return "held";
     return d < today() ? "unmarked" : "planned";
-  }
-  function stayCount(d){
-    const r = (S.att[d] && S.att[d].records) || {};
-    return players().filter(m => r[m.id] !== "leave").length;
   }
   function leaversOf(d){
     const r = (S.att[d] && S.att[d].records) || {};
@@ -394,7 +389,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <li><strong>一堂一收</strong>，上一次課收一次，不用先繳一整期。</li>
         ${s.bigMin > 0 ? `<li><strong>${s.bigMin} 人以上開 2 面場地</strong>（包場，身障半價後每小時 ${money(s.venueRate2)}）；${s.bigMin - 1} 人以下開 1 面（身障半價後每小時 ${money(s.venueRate)}）。</li>` : ""}
         ${venuePayerOf() ? `<li><strong>${esc(vpName())}</strong> 先幫忙付場地費 ${money(f.venue)} 給館方，他的 ${money(f.pp)} 直接扣掉，${esc(trName())} 再匯 <strong>${money(f.venue - f.pp)}</strong> 還給他（${f.n} 人都上課時）。</li>` : ""}
-        <li><strong>事先請假</strong>：其他人照上；請假後不到 ${s.minClass || 4} 人就整班停課、不收錢。</li>
+        <li><strong>事先請假</strong>選「整班暫停」：這週不上課、不收錢。</li>
         <li>有人請假、其他人<strong>照上</strong>：由沒請假的人平分，例如 ${[...new Set([f.n - 1, s.bigMin - 1, s.bigMin - 2])].filter(k => k > 0 && k < f.n).sort((a, b) => b - a).map(k => `${k} 人上課每人 ${money(fees(k).pp)}`).join("、")}。</li>
         <li><strong>沒請假就缺席</strong>：照樣要分攤費用。</li>
         <li>隊友人數有變動時，金額會自動重算；已經收的錢不會跟著改。</li>
@@ -467,13 +462,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   function classBanner(d){
     const ci = classInfo(d), f = fees(ci.n);
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
-    if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，請假後只剩 ${stayCount(d)} 人（不到 ${S.settings.minClass || 4} 人），這週整班停課、不收錢。</small></div>`;
-    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>`;
-    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」；剩下不到 ${S.settings.minClass || 4} 人會自動整班停課。")}</small></div>`;
+    if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + modeSwitch("paused");
+    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + modeSwitch("single");
+    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>`;
   }
   // 繳費頁只在暫停那週提醒不收費
   const payNotice = d => statusOf(d) === "paused"
-    ? `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，只剩 ${stayCount(d)} 人（不到 ${S.settings.minClass || 4} 人），這週整班停課、不收錢。</small></div>` : "";
+    ? `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` : "";
 
   // 點名
   function viewCheckin(sch){
@@ -784,14 +779,13 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         const hadLeave = Object.values(cur).includes("leave");
         if(cur[id] === s) delete cur[id]; else cur[id] = s;
         const hasLeave = Object.values(cur).includes("leave");
-        const before = statusOf(date);
+        const mode = S.att[date] && S.att[date].mode;
         const doc = { date, records: cur };
+        if(hasLeave && mode) doc.mode = mode;
         S.att[date] = doc;
-        const after = statusOf(date);
         render();
         write("attendance/"+date, save("attendance", date, doc));
-        if(after !== before && after === "paused") toast(`請假後只剩 ${stayCount(date)} 人，這週自動整班停課`);
-        else if(after !== before && after === "single") toast(`已記請假，其他 ${stayCount(date)} 人照上`);
+        if(hasLeave && !hadLeave) toast(mode === "single" ? "已記請假，其他人照上" : "有人請假，這週先暫停（也可以改成其他人照上）");
         else if(!hasLeave && hadLeave) toast("沒人請假了，這週照常上團課");
         break;
       }
@@ -808,6 +802,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         const cur = { ...((S.att[date] && S.att[date].records) || {}) };
         active().forEach(m => { if(!cur[m.id]) cur[m.id] = "present"; });
         const doc = { date, records: cur };
+        if(S.att[date] && S.att[date].mode && Object.values(cur).includes("leave")) doc.mode = S.att[date].mode;
         S.att[date] = doc; render();
         write("attendance/"+date, save("attendance", date, doc));
         toast("全部標好出席了");
