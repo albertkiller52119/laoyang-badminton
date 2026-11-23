@@ -639,28 +639,17 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const list = active();
     if(!list.length) return noMembers();
     const t = today();
-    const past = sch.filter(i => i.date <= t && i.date >= S.settings.start);
-    const held = past.filter(i => i.status === "held" || i.status === "single").length;
-    const paused = past.filter(i => i.status === "paused");
     const rows = list.map(m => {
       let p=0, l=0, a=0;
       Object.keys(S.att).filter(d => d >= S.settings.start).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
       const owed = m.role === "coach" ? [] : owedBy(m, sch);
       return {m, p, l, a, owed};
     });
-    const owing = rows.filter(r => r.owed.length).length;
     return `
-      <div class="summary">
-        <div class="stat ok"><b>${held}</b><span>已經上了幾堂</span></div>
-        <div class="stat warn"><b>${paused.length}</b><span>請假暫停幾週</span></div>
-        <div class="stat bad"><b>${owing}</b><span>有欠費的隊友</span></div>
-      </div>
       <ul class="list pair">${rows.map(r => `<li class="row">
         <div class="who"><b>${esc(r.m.name)}</b>${tagHtml(r.m)}<span class="sub">${[["出席", r.p], ["請假", r.l], ["缺席", r.a]].map(([k, n]) => `<span style="white-space:nowrap">${k} ${n}</span>`).join("・")}</span></div>
         ${r.owed.length ? `<div class="chips"><span class="muted" style="font-size:.85rem">還沒付：</span>${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>` : `<div class="actions"><span class="pill ok">都付清了</span></div>`}
-      </li>`).join("")}</ul>
-      <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
-      ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
+      </li>`).join("")}</ul>`;
   }
 
   // 隊友
