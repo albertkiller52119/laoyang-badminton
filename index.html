@@ -114,13 +114,6 @@ main{padding-block:18px 48px;display:grid;gap:16px}
 .hero-bar i{display:block;height:100%;border-radius:999px;background:#ffc933;transition:width .3s}
 .hero-note{font-size:.82rem;opacity:.85;border-top:1px dashed rgba(255,255,255,.3);padding-top:8px}
 /* 錢怎麼走：流向圖 */
-.flowmap{display:grid;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px}
-.fm-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
-.fm-node{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-weight:900;font-size:.9rem;white-space:nowrap}
-.fm-node.hub{background:var(--accent);border-color:var(--accent);color:var(--surface)}
-.fm-arrow{position:relative;text-align:center;font-size:.82rem;font-weight:900;color:var(--accent);padding-bottom:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.fm-arrow::after{content:"";position:absolute;left:4px;right:10px;bottom:2px;border-bottom:2px solid var(--accent)}
-.fm-arrow::before{content:"";position:absolute;right:2px;bottom:-2px;border:5px solid transparent;border-left:8px solid var(--accent)}
 /* 規則收合 */
 details.rules > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
 details.rules > summary::-webkit-details-marker{display:none}
@@ -692,15 +685,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
     }
     steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。</li>`);
-    const payers = fl.ci.ids.filter(id => !(fl.vp && id === fl.vp.id) && !(fl.tr && id === fl.tr.id)).length;
-    const row = (a, amt, b, hubA, hubB) => `<div class="fm-row"><span class="fm-node${hubA ? " hub" : ""}">${a}</span><span class="fm-arrow">${amt}</span><span class="fm-node${hubB ? " hub" : ""}">${b}</span></div>`;
-    const map = `<div class="flowmap" role="img" aria-label="錢的流向圖">
-      ${row(`隊友 ${payers} 人`, `每人 ${num(fl.ci.pp)}`, tr, false, true)}
-      ${fl.vp ? row(vp, num(fl.venue), "館方", false, false) : ""}
-      ${fl.vp && fl.net > 0 ? row(tr, num(fl.net), vp, true, false) : ""}
-      ${row(tr, num(fl.coach), esc(S.settings.coachNick || "教練"), true, false)}
-    </div>`;
-    return `<div class="card flow"><h2>錢怎麼走？</h2>${map}<ol class="steps">${steps.join("")}</ol>
+    return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
       </div>`;
   }
 
