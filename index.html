@@ -279,7 +279,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const METHODS = ["現金","LINE Pay"];
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
-    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:6,
+    coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:6, fullFrom:"2026-12-12",
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
 
@@ -344,7 +344,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <li><strong>事先請假：</strong>最晚請提前一週告知，課程費用由實際出席人數平均分攤。若上課人數少於 4 人，則由大家討論是否停課。</li>
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤課程費用。</li>
     </ul>
-    ${big > 0 ? `<b>場地安排</b>
+    ${S.settings.fullFrom ? `<b>場地安排</b>
+    <ul class="rule-list">
+      <li><strong>季租包場：</strong>自 ${md(S.settings.fullFrom)} 起固定租 2 面場地，不論當天出席幾人，場地費都一樣。</li>
+      <li><strong>出席人數越少，每人分攤越多</strong>，要請假請儘早告知，方便大家安排。</li>
+      ${big > 0 && today() < S.settings.fullFrom ? `<li><strong>${md(S.settings.fullFrom)} 以前：</strong>依人數安排，${big - 1} 人以下 1 面、${big} 人以上 2 面。</li>` : ""}
+    </ul>` : big > 0 ? `<b>場地安排</b>
     <ul class="rule-list">
       <li><strong>${big - 1} 人以下：</strong>使用 1 面場地。</li>
       <li><strong>${big} 人以上：</strong>使用 2 面場地（包場）。</li>
@@ -353,14 +358,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 繳費頁：收費小提醒
   const rulesBox = d => {
     const s = S.settings, big = s.bigMin, vp = esc(s.vpNick || "芳玉"), tr = esc(s.trNick || "吉哥");
-    const ci = d ? classInfo(d) : null, f = ci && ci.n ? fees(ci.n) : null, lv = d ? leaveCount(d) : 0;
+    const ci = d ? classInfo(d) : null, f = ci && ci.n ? fees(ci.n, d) : null, lv = d ? leaveCount(d) : 0;
     const num = x => Number(x).toLocaleString("en-US");
     return `<details class="rules">
     <summary><b>收費小提醒</b></summary>
     <ul class="rule-list">
       <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤。</li>
-      <li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}付還。</li>
-      ${big > 0 ? `<li><strong>場地面數：</strong>${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）；${big} 人以上使用 2 面（${money(s.venueRate2)}／時）。${f ? `這堂 ${ci.n} 人，開 ${f.two ? 2 : 1} 面。` : ""}</li>` : ""}
+      ${isPkg(d) ? `<li><strong>季租包場：</strong>固定 2 面場地，每堂 ${s.venueHours} 小時 × ${money(s.venueRate2)}＝<strong>${money(s.venueHours * s.venueRate2)}</strong>，不論出席人數都一樣；出席人數少時，每人分攤會變多。</li>
+      <li><strong>場地付款：</strong>${vp}先向館方付季租場地費，每堂的場地費扣掉${vp}自己的課費後，再由${tr}付還。</li>`
+      : `<li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}付還。</li>
+      ${big > 0 ? `<li><strong>場地面數：</strong>${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）；${big} 人以上使用 2 面（${money(s.venueRate2)}／時）。${f ? `這堂 ${ci.n} 人，開 ${f.two ? 2 : 1} 面。` : ""}</li>` : ""}`}
       <li><strong>繳費方式：</strong>課費統一交給${tr}，可使用 LINE Pay 或現金。</li>
     </ul>
   </details>`;
@@ -394,7 +401,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const r = (S.att[d] && S.att[d].records) || {};
     const ids = billable(st) ? players().filter(m => r[m.id] !== "leave").map(m => m.id) : [];
     const n = ids.length;
-    return { st, ids, n, pp: n ? Math.ceil(fees(n).session / n) : 0 };
+    return { st, ids, n, pp: n ? Math.ceil(fees(n, d).session / n) : 0 };
   }
   const leaveCount = d => players().filter(m => ((S.att[d] && S.att[d].records) || {})[m.id] === "leave").length;
   const payKey = d => "class-" + d;
@@ -406,7 +413,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   // 這堂的錢怎麼走：訂場地的人先付場地費，他的課費從裡面扣，差額由財務匯還（或由他補給財務）
   function flowOf(d){
-    const ci = classInfo(d), f = fees(ci.n);
+    const ci = classInfo(d), f = fees(ci.n, d);
     const vp = venuePayerOf(), tr = treasurerOf();
     const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || null;   // 財務付給教練的紀錄
     const venuePaid = (S.pay[payKey(d)] || {}).venuePaid || null;   // 場地負責人付給館方的紀錄
@@ -436,18 +443,21 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const paidControl = (done, d, kind, draftKey, label) => !S.canWrite ? "" : done
     ? `<br><span class="pill ok">已付款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="${kind}-undo" data-date="${d}">取消紀錄</button>` : ""}`
     : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft[draftKey] || "LINE Pay") ? " primary" : ""}" data-act="${kind}-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="${kind}-save" data-date="${d}">${label}</button></div>` : `<br><span class="pill bad">還沒付</span>`);
-  // n：這堂上課人數（不給就用全部隊友）；人數達 bigMin 就開 2 面場地
-  const twoCourts = n => S.settings.bigMin > 0 && n >= S.settings.bigMin;
-  function fees(n){
+  // 季租包場：fullFrom 當天起固定 2 面，不看人數（沒給日期就當作包場期間）
+  const isPkg = d => !!S.settings.fullFrom && (d == null || d >= S.settings.fullFrom);
+  // n：這堂上課人數（不給就用全部隊友）；包場前人數達 bigMin 才開 2 面場地
+  const twoCourts = (n, d) => isPkg(d) || (S.settings.bigMin > 0 && n >= S.settings.bigMin);
+  function fees(n, d){
     const s = S.settings;
     if(n == null) n = players().length;
-    const two = twoCourts(n), rate = two ? s.venueRate2 : s.venueRate;
+    const pkg = isPkg(d), two = twoCourts(n, d), rate = two ? s.venueRate2 : s.venueRate;
     const coach = s.coachHours * s.coachRate, venue = s.venueHours * rate;
     const session = coach + venue;
     const pp = n ? Math.ceil(session / n) : 0;
-    return { coach, venue, session, n, pp, two, rate, exact: n ? session % n === 0 : true };
+    return { coach, venue, session, n, pp, two, pkg, rate, exact: n ? session % n === 0 : true };
   }
-  const courtText = f => `${f.two ? 2 : 1} 面場地，${S.settings.venueHours} 小時 × ${money(f.rate)}`;
+  const courtLabel = f => f.pkg ? "包場 2 面" : `${f.two ? 2 : 1} 面場地`;
+  const courtText = f => `${courtLabel(f)}，${S.settings.venueHours} 小時 × ${money(f.rate)}`;
   function feeCard(){
     const f = fees(), s = S.settings;
     return `<div class="card">
@@ -564,11 +574,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
   // 點名頁的說明橫幅
   function classBanner(d){
-    const ci = classInfo(d), f = fees(ci.n);
+    const ci = classInfo(d), f = fees(ci.n, d);
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
     if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + modeSwitch("paused");
-    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + modeSwitch("single");
-    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${f.two ? 2 : 1} 面場地）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>`;
+    if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)}（${courtLabel(f)}）由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + modeSwitch("single");
+    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${courtLabel(f)}）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>`;
   }
   // 繳費頁只在暫停那週提醒不收費
   const payNotice = d => statusOf(d) === "paused"
@@ -651,10 +661,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 繳費頁最上面：這堂摘要
   function heroCard(d, ci, need, done){
     const num = x => Number(x).toLocaleString("en-US");
-    const f = fees(ci.n), lv = leaveCount(d), extra = ci.pp * ci.n - f.session;
+    const f = fees(ci.n, d), lv = leaveCount(d), extra = ci.pp * ci.n - f.session;
     const pct = need ? Math.round(done / need * 100) : 100;
     return `<div class="hero">
-      <div class="hero-top"><span>${labelDate(d)} 這堂</span><span class="hero-chip">${f.two ? 2 : 1} 面場地</span></div>
+      <div class="hero-top"><span>${labelDate(d)} 這堂</span><span class="hero-chip">${courtLabel(f)}</span></div>
       <div class="hero-main"><b>${money(ci.pp)}</b><span>每人</span></div>
       <div class="hero-meta">出席 ${ci.n} 人${lv ? `・請假 ${lv} 人` : ""}<br>教練費 ${num(f.coach)}＋場地費 ${num(f.venue)}＝${num(f.session)}，${ci.n} 人平分</div>
       <div class="hero-prog"><span>已付 ${done}／${need} 人</span><div class="hero-bar" role="progressbar" aria-label="已付人數" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div></div>
@@ -677,11 +687,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
     const num = x => Number(x).toLocaleString("en-US");
     let steps = [];
-    const lv = leaveCount(d), cf0 = fees(fl.ci.n);
+    const lv = leaveCount(d), cf0 = fees(fl.ci.n, d);
     steps.push(`<li><b>付給${tr}：</b>當天出席 ${fl.ci.n} 人${lv ? `（${lv} 人請假）` : ""}，教練費＋場地費共 ${money(cf0.session)}，每人 <strong>${money(fl.ci.pp)}</strong>${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
     if(fl.vp){
-      const cf = fees(fl.ci.n);
-      steps.push(`<li><b>場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，請${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}</li>`);
+      const cf = fees(fl.ci.n, d);
+      steps.push(`<li><b>場地費：</b>${cf.pkg ? `季租<strong>包場 2 面</strong>，不論出席人數，每小時` : `當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時`} ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，${cf.pkg ? `由${vp}預先付季租給館方` : `請${vp}先付給館方`}${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}</li>`);
       if(fl.net > 0){
         const done = fl.reimb;
         steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}</li>`);
@@ -763,7 +773,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const t = today();
     return sch.filter(i => i.date >= S.settings.start && billable(i.status) && (i.date <= t || S.att[i.date] || S.pay[payKey(i.date)]))
       .map(i => { const d = i.date, ci = classInfo(d); if(!ci.n) return null;
-        const fl = flowOf(d), f = fees(ci.n), rec = (S.pay[payKey(d)] || {}).records || {};
+        const fl = flowOf(d), f = fees(ci.n, d), rec = (S.pay[payKey(d)] || {}).records || {};
         const must = players().filter(m => ci.ids.includes(m.id) && !selfSettled(m, d));
         const due = must.length * ci.pp, got = must.reduce((a, m) => a + (rec[m.id] ? Number(rec[m.id].amount || ci.pp) : 0), 0);
         return { d, n: ci.n, pp: ci.pp, due, got, left: must.filter(m => !rec[m.id]).length,
@@ -870,7 +880,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           <label class="field"><span>教練費（每小時）</span><input id="set_coachRate" type="number" inputmode="numeric" min="0" value="${v("set_coachRate", s.coachRate)}"${dis()}></label>
           <label class="field"><span>場地租幾小時（每堂）</span><input id="set_venueHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_venueHours", s.venueHours)}"${dis()}></label>
           <label class="field"><span>1 面場地費（每小時，身障半價後）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
-          <label class="field"><span>幾人以上開 2 面場地（填 0 ＝不開）</span><input id="set_bigMin" type="number" inputmode="numeric" min="0" value="${v("set_bigMin", s.bigMin)}"${dis()}></label>
+          <label class="field"><span>季租包場從哪天開始（固定 2 面；空白＝依人數）</span><input id="set_fullFrom" type="date" value="${v("set_fullFrom", s.fullFrom)}"${dis()}></label>
+          <label class="field"><span>包場以前：幾人以上開 2 面（填 0 ＝不開）</span><input id="set_bigMin" type="number" inputmode="numeric" min="0" value="${v("set_bigMin", s.bigMin)}"${dis()}></label>
           <label class="field"><span>2 面包場費（每小時，身障半價後）</span><input id="set_venueRate2" type="number" inputmode="numeric" min="0" value="${v("set_venueRate2", s.venueRate2)}"${dis()}></label>
           <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
           <label class="field"><span>財務</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
@@ -1035,7 +1046,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           const leave = leaversOf(d);
           text = `🏸【${S.settings.group}】${labelDate(d)} 課費\n` +
             (leave.length ? `${leave.join("、")} 請假，其他 ${ci.n} 位照常上課。\n` : "") +
-            `一堂 ${money(fees(ci.n).session)}（${fees(ci.n).two ? 2 : 1} 面場地），${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
+            `一堂 ${money(fees(ci.n, d).session)}（${courtLabel(fees(ci.n, d))}），${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
             (treasurerOf() ? `👉 請把 ${money(ci.pp)} 轉給 ${tr}${info}。\n` : "") +
             (fl.vp && fl.vpShare && fl.net >= 0 ? `${vpName()} 已經先付場地費 ${money(fl.venue)}，他的課費直接扣掉，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (fl.vp && !fl.vpShare && fl.net > 0 ? `${vpName()} 已經先付場地費 ${money(fl.venue)}，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
@@ -1105,7 +1116,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
       case "settings-save": {
         const next = { ...S.settings };
-        ["group","location","time","start","manager","treasurer","venuePayer","payInfo","trNick","vpNick"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
+        ["group","location","time","start","fullFrom","manager","treasurer","venuePayer","payInfo","trNick","vpNick"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
         NUMS.forEach(k => { const n = Number(document.getElementById("set_"+k).value); next[k] = n >= 0 ? n : DEF[k]; });
         if(!next.start) next.start = DEF.start;
         delete next.perTerm;
