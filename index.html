@@ -196,6 +196,11 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);text-align:center;z-index:20}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion: reduce){#toast{transition:none}}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--warn-bg);color:var(--warn);border-top:2px solid var(--warn);font-weight:700;box-shadow:0 -4px 14px rgba(0,0,0,.12)}
+.savebar[hidden]{display:none}
+.savebar span{flex:1 1 auto;min-width:0}
+body.has-save{padding-bottom:84px}
+body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 </style>
 </head>
 <body>
@@ -225,6 +230,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
 <main id="app" class="wrap">
   <div class="empty"><b>名單載入中…</b>馬上就好，請稍等一下。</div>
 </main>
+<div id="saveBar" class="savebar" role="region" aria-label="儲存修改" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -423,12 +429,43 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
 
   // ---------- writes: one at a time per document ----------
   const queues = {};
+  // 修改先暫存，按「確認儲存」才一次寫進雲端
+  const staged = new Map();
+  let changes = 0;   // 點了幾次修改
   function write(path, fn){
     if(!S.online || !S.canWrite) return;
-    pendingWrites++;
-    queues[path] = (queues[path] || Promise.resolve()).then(fn).catch(handleErr)
-      .finally(() => { pendingWrites--; if(!pendingWrites) load(); });
+    staged.delete(path); staged.set(path, fn); changes++;   // 同一筆資料只留最後一次
+    renderSaveBar();
   }
+  function flush(){
+    if(!staged.size) return;
+    const jobs = [...staged]; staged.clear(); changes = 0;
+    let failed = false;
+    const all = jobs.map(([path, fn]) => {
+      pendingWrites++;
+      return queues[path] = (queues[path] || Promise.resolve()).then(fn).catch(e => { failed = true; handleErr(e); })
+        .finally(() => { pendingWrites--; if(!pendingWrites) load(); });
+    });
+    S.saving = true; renderSaveBar();
+    Promise.all(all).then(() => { S.saving = false; renderSaveBar(); toast(failed ? "有資料沒存成功，請再試一次" : "已儲存 ✓"); });
+  }
+  function discard(){
+    staged.clear(); changes = 0; renderSaveBar();
+    S.editId = null; S.payOpen = null; S.payConfirm = null;
+    load(); toast("已放棄修改，恢復成雲端的資料");
+  }
+  const saveBar = document.getElementById("saveBar");
+  function renderSaveBar(){
+    const n = staged.size ? Math.max(changes, 1) : 0;
+    if(S.saving){ saveBar.hidden = false; saveBar.innerHTML = `<span>儲存中…</span>`; document.body.classList.add("has-save"); return; }
+    saveBar.hidden = !n; document.body.classList.toggle("has-save", !!n);
+    saveBar.innerHTML = n ? `<span>有 <b>${n}</b> 項修改還沒儲存</span><button class="btn small" data-save="discard">放棄</button><button class="btn small primary" data-save="ok">確認儲存</button>` : "";
+  }
+  saveBar.addEventListener("click", e => {
+    const b = e.target.closest("[data-save]"); if(!b) return;
+    if(b.dataset.save === "ok") flush(); else discard();
+  });
+  window.addEventListener("beforeunload", e => { if(staged.size){ e.preventDefault(); e.returnValue = ""; } });
   const save = (c, id, data) => () => gs("saveDoc", S.pw, c, id, data);
   const remove = (c, id) => () => gs("deleteDoc", S.pw, c, id);
   function handleErr(e){
@@ -995,7 +1032,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   async function load(){
     try {
       const d = await gs("getData");
-      if(pendingWrites) return; // 還有資料在存，先不要蓋掉畫面
+      if(pendingWrites || staged.size) return; // 還有資料在存或還沒儲存，先不要蓋掉畫面
       S.members = Object.keys(d.members || {}).map(id => ({ id, ...d.members[id] })).sort(byClassThenStroke);
       S.att = d.attendance || {};
       S.pay = d.payments || {};
@@ -1053,6 +1090,8 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       el.type = show ? "text" : "password"; e.target.textContent = show ? "隱藏" : "顯示"; el.focus();
     }
     else if(e.target.id === "logoutBtn"){
+      if(staged.size && !confirm("還有修改沒儲存，登出會放棄這些修改，確定嗎？")) return;
+      staged.clear(); changes = 0; renderSaveBar();
       S.pw = ""; S.canWrite = false; S.loginOpen = false;
       try { localStorage.removeItem("ylAdminPw"); } catch(_){}
       renderAdminBar(); render(); toast("登出了，現在是查看模式");
