@@ -124,15 +124,14 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .deadline.past b{color:var(--muted)}
 /* 統計頁：對帳表 */
 .ledger td.ok{color:var(--ok)} .ledger td.bad{color:var(--bad)}
-.ledger small{font-size:.72rem;font-weight:700}
-table.calc small.sub{display:block;font-size:.75rem;font-weight:600;color:var(--muted);margin-top:2px}
-.tablewrap table.ledger{min-width:0;font-size:.9rem}
-.tablewrap table.ledger th,.tablewrap table.ledger td{padding:10px 6px}
-.tablewrap table.ledger th{line-height:1.25;letter-spacing:0;white-space:nowrap}
-.ledger td.d b{display:block;font-variant-numeric:tabular-nums}
-.ledger td.d small{display:block;color:var(--muted);margin-top:2px}
-.ledger td.num small{display:block;margin-top:2px}
-.tablewrap table.ledger td.num{font-size:.92rem}
+.ledger small{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-top:2px;white-space:nowrap}
+.ledger td.bad small{color:var(--bad)}
+.tablewrap table.ledger{min-width:0;font-size:.95rem}
+.tablewrap table.ledger th,.tablewrap table.ledger td{padding:12px 6px;line-height:1.25}
+.tablewrap table.ledger th{font-size:.78rem;letter-spacing:0;white-space:nowrap}
+.tablewrap table.ledger td:first-child{padding-left:12px}
+.tablewrap table.ledger td.num{font-size:.98rem;white-space:nowrap}
+.tablewrap table.ledger tbody tr:nth-child(even) td{background:var(--surface-2)}
 @media (prefers-reduced-motion: reduce){.hero-bar i{transition:none}}
 .stat{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center}
 .stat b{display:block;font-size:1.15rem;font-weight:900;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -222,6 +221,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
 .calc td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:baseline}
 .calc td:nth-child(2){color:var(--muted);font-size:.9rem}
 .calc td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.calc small{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-top:2px}
 .calc tr.total td{font-weight:900;font-size:1.08rem;color:var(--fg)}
 .calc tr.big td{font-size:1.25rem;color:var(--accent);border-bottom:0}
 
@@ -777,20 +777,20 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const num = x => Number(x).toLocaleString("en-US"), tr = esc(trName()), vp = esc(vpName()), cn = esc(S.settings.coachNick || "教練");
     const sum = k => rows.reduce((a, r) => a + r[k], 0);
     const settled = rows.filter(r => !r.left && (r.reimbDone || !r.reimb) && r.coachDone);
-    const ok = (b, t) => `<td class="num ${b ? "ok" : "bad"}">${b ? "✓" : t}</td>`;
+    const ok = (b, t) => `<td class="num ${b ? "ok" : "bad"}">${b ? "✓ " + t : t}<small>${b ? "已付" : "還沒付"}</small></td>`;
     return `<div class="card">
       <h2>財務對帳</h2>
       <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>日期</th><th class="num">應收</th><th class="num">已收</th><th class="num">付給<br>${vp}</th><th class="num">付給<br>${cn}</th></tr></thead>
-        <tbody>${rows.map(r => `<tr><td class="d"><b>${md(r.d)}</b><small>${r.n} 人</small></td><td class="num">${num(r.due)}</td><td class="num ${r.left ? "bad" : "ok"}">${num(r.got)}${r.left ? `<br><small>差 ${r.left} 人</small>` : ""}</td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
+        <thead><tr><th>日期</th><th class="num">隊友繳費</th><th class="num">付${vp}</th><th class="num">付${cn}</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td><b>${md(r.d)}</b><small>${r.n} 人</small></td><td class="num ${r.left ? "bad" : "ok"}">${r.left ? num(r.got) : "✓ " + num(r.got)}<small>${r.left ? `差 ${r.left} 人` : "收齊"}</small></td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num muted">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
       </table></div>
       <table class="calc">
         <tr><td>隊友應付給${tr}</td><td></td><td>${money(sum("due"))}</td></tr>
         <tr><td>已經收到</td><td></td><td>${money(sum("got"))}</td></tr>
         <tr><td>還沒收到</td><td></td><td>${money(sum("due") - sum("got"))}</td></tr>
-        <tr class="total"><td>班費<small class="sub">進位多收的零頭・已結清 ${settled.length} 堂</small></td><td></td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
+        <tr class="total"><td>班費<small>進位多收的零頭，已結清 ${settled.length} 堂</small></td><td></td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
       </table>
-      <p class="muted">「付給${vp}」「付給${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
+      <p class="muted">「付${vp}」「付${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="export-csv">匯出 Excel 備份</button></div>` : ""}
     </div>`;
   }
