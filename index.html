@@ -626,7 +626,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
           ? `<div class="actions"><span class="muted">要取消這筆紀錄嗎？</span><button class="btn small danger" data-act="pay-del" data-key="${key}" data-id="${m.id}"${dis()}>確定取消</button><button class="btn small" data-act="pay-confirm" data-id="">先不要</button></div>`
           : `<div class="actions"><span class="pill ok">已繳</span>${S.canWrite ? `<button class="btn small" data-act="pay-confirm" data-key="${key}" data-id="${m.id}">取消</button>` : ""}</div>`;
       } else {
-        right = S.payOpen === tok ? "" : `<div class="actions"><span class="pill bad">還沒付</span>${S.canWrite ? `<button class="btn small primary" data-act="pay-open" data-key="${key}" data-id="${m.id}">記一筆收款</button>` : ""}</div>`;
+        right = S.payOpen === tok ? "" : `<div class="actions">${S.canWrite ? `<button class="pill bad" data-act="pay-open" data-key="${key}" data-id="${m.id}">還沒付</button>` : `<span class="pill bad">還沒付</span>`}</div>`;
       }
       let form = "";
       if(!r && S.payOpen === tok){
