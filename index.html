@@ -297,7 +297,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     <b>收費小提醒</b>
     <ul class="rule-list">
       <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤。</li>
-      <li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}匯還。</li>
+      <li><strong>場地預訂：</strong>${vp}負責預訂下週場地並先行付款，自己的課費直接扣除，剩餘款項再由${tr}付還。</li>
       ${big > 0 ? `<li><strong>場地面數：</strong>${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）；${big} 人以上使用 2 面（${money(s.venueRate2)}／時）。</li>` : ""}
       <li><strong>繳費方式：</strong>課費統一交給${tr}，可使用 LINE Pay 或現金。</li>
     </ul>
@@ -655,14 +655,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat warn"><b>${paused.length}</b><span>請假暫停幾週</span></div>
         <div class="stat bad"><b>${owing}</b><span>有欠費的隊友</span></div>
       </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>姓名</th><th class="num">出席</th><th class="num">請假</th><th class="num">缺席</th><th>還沒繳的堂</th></tr></thead>
-        <tbody>${rows.map(r => `<tr>
-          <td><b>${esc(r.m.name)}</b> ${tagHtml(r.m)}</td>
-          <td class="num">${r.p}</td><td class="num">${r.l}</td><td class="num">${r.a}</td>
-          <td>${r.owed.length ? `<div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>` : `<span class="pill ok">都繳清了</span>`}</td>
-        </tr>`).join("")}</tbody>
-      </table></div>
+      <ul class="list pair">${rows.map(r => `<li class="row">
+        <div class="who"><b>${esc(r.m.name)}</b>${tagHtml(r.m)}<span class="sub">${[["出席", r.p], ["請假", r.l], ["缺席", r.a]].map(([k, n]) => `<span style="white-space:nowrap">${k} ${n}</span>`).join("・")}</span></div>
+        ${r.owed.length ? `<div class="chips"><span class="muted" style="font-size:.85rem">還沒付：</span>${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>` : `<div class="actions"><span class="pill ok">都付清了</span></div>`}
+      </li>`).join("")}</ul>
       <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
       ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
   }
@@ -674,7 +670,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     const v = (k, fallback) => esc(d[k] ?? fallback ?? "");
     const row = m => {
       if(S.editId === m.id){
-        return `<li class="row"><div class="form">
+        return `<li class="row wide"><div class="form">
           <div class="fields">
             <label class="field"><span>姓名</span><input id="editName" value="${v("editName", m.name)}"></label>
             <label class="field"><span>分級</span><select id="editCls">${CLASSES.map(c => `<option${(d.editCls ?? (m.cls||"未分級"))===c?" selected":""}>${c}</option>`).join("")}</select></label>
@@ -687,7 +683,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       const delBtns = S.delConfirm === m.id
         ? `<span class="muted">刪掉就救不回來了，確定嗎？</span><button class="btn small danger" data-act="del" data-id="${m.id}"${dis()}>確定刪除</button><button class="btn small" data-act="del-ask" data-id="">先不要</button>`
         : `<button class="btn small danger" data-act="del-ask" data-id="${m.id}"${dis()}>刪除</button>`;
-      return `<li class="row">
+      return `<li class="row${S.delConfirm === m.id ? " wide" : ""}">
         <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}
           ${(m.phone||m.note) ? `<span class="sub">${esc([m.phone, m.note].filter(Boolean).join("・"))}</span>` : ""}</div>
         <div class="actions">${m.active === false
@@ -702,7 +698,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="stat"><b>${money(f.pp)}</b><span>每人每堂</span></div>
         <div class="stat"><b>${money(f.session)}</b><span>一堂總共</span></div>
       </div>
-      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list">${on.map(row).join("")}</ul>${adminHintP("排序：先看分級，同分級再照姓名筆畫。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
+      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list pair">${on.map(row).join("")}</ul>${adminHintP("排序：先看分級，同分級再照姓名筆畫。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
       ${!S.canWrite ? "" : `<div class="card">
         <h2>加入新隊友</h2>
         <div class="fields">
@@ -714,7 +710,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
         <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>
         <p class="muted">加人或有人停課後，每個人的費用會自動重算。</p>
       </div>`}
-      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">停課的隊友不會出現在點名和繳費名單，也不分攤費用；以前的紀錄都還在。</p><ul class="list">${off.map(row).join("")}</ul>` : ""}
+      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">停課的隊友不會出現在點名和繳費名單，也不分攤費用；以前的紀錄都還在。</p><ul class="list pair">${off.map(row).join("")}</ul>` : ""}
       ${!S.canWrite ? "" : `<div class="card">
         <h2>課程和費用設定</h2>
         <div class="fields">
