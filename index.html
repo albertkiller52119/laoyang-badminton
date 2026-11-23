@@ -267,12 +267,14 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
-  // 小提醒：提醒芳玉依人數訂場地
+  // 小提醒：請假規則＋提醒芳玉依人數訂場地
   const rulesBox = () => {
     const big = S.settings.bigMin, vp = esc(S.settings.vpNick || "芳玉");
     return `<div class="rules">
     <b>小提醒</b>
     <ul class="rule-list">
+      <li><strong>要請假，記得提早說一聲</strong><br>可以選「整班暫停」，或「其他人照上」，由當天來的人一起分攤費用。</li>
+      <li><strong>沒先請假就沒來</strong><br>課還是照上，這堂的費用一樣要分攤喔！</li>
       ${big > 0 ? `<li><strong>${vp}訂場地時看一下人數</strong><br>${big - 1} 人以下訂 1 面就夠了；${big} 人以上再訂 2 面（包場）。</li>` : ""}
     </ul>
   </div>`;
