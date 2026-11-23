@@ -774,7 +774,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const settled = rows.filter(r => !r.left && (r.reimbDone || !r.reimb) && r.coachDone);
     const ok = (b, t) => `<td class="num ${b ? "ok" : "bad"}">${b ? "✓" : t}</td>`;
     return `<div class="card">
-      <h2>${tr}對帳</h2>
+      <h2>財務對帳</h2>
       <div class="tablewrap"><table class="ledger">
         <thead><tr><th>日期</th><th class="num">人數</th><th class="num">應收</th><th class="num">已收</th><th class="num">付${vp}</th><th class="num">付${cn}</th></tr></thead>
         <tbody>${rows.map(r => `<tr><td>${md(r.d)}</td><td class="num">${r.n}</td><td class="num">${num(r.due)}</td><td class="num ${r.left ? "bad" : "ok"}">${num(r.got)}${r.left ? `<br><small>差 ${r.left} 人</small>` : ""}</td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
