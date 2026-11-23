@@ -586,17 +586,15 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
     steps.push(`<li><b>付給${tr}：</b>每人 ${money(fl.ci.pp)}${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
     if(fl.vp){
       const cf = fees(fl.ci.n);
-      steps.push(`<li><b>場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，請${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}${paidControl(fl.venuePaid, d, "venue", "venueMethod", "記下已付館方")}</li>`);
+      steps.push(`<li><b>場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，請${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}</li>`);
       if(fl.net > 0){
         const done = fl.reimb;
-        steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}
-          ${!S.canWrite ? "" : done ? `<br><span class="pill ok">已匯款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="reimb-undo" data-date="${d}">取消紀錄</button>` : ""}`
-                 : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft.reimbMethod || "LINE Pay") ? " primary" : ""}" data-act="reimb-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="reimb-save" data-date="${d}">記下已匯款</button></div>` : `<br><span class="pill bad">還沒匯</span>`)}</li>`);
+        steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}</li>`);
       } else if(fl.net < 0){
         steps.push(`<li><b>${vp}補給${tr}：</b>${vp}的課費 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong>。</li>`);
       }
     }
-    steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。${paidControl(fl.coachPaid, d, "coach", "coachMethod", "記下已付教練費")}</li>`);
+    steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。</li>`);
     return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
       </div>`;
   }
@@ -605,6 +603,11 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
   const payDoc = (key, records) => ({ ...(S.pay[key] || {}), date: key.slice(6), records });
   const payLabel = key => `${md(key.slice(6))} `;
 
+  // 收付狀態標籤：管理員點一下可記下／取消
+  const flowPill = (ok, text, kind, d) => S.canWrite
+    ? `<button class="pill ${ok ? "ok" : "bad"} tap" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${text}</button>`
+    : `<span class="pill ${ok ? "ok" : "bad"}">${text}</span>`;
+
   // 一份繳費名單
   function payList(key, list, defAmt, d, cls = ""){
     const rec = (S.pay[key] && S.pay[key].records) || {};
@@ -612,10 +615,10 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       const r = rec[m.id], tok = key + "|" + m.id;
       const amt = d ? oweAmount(m, d) : defAmt;
       if(!r && d && settledByVenue(m, d)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div><div class="actions stack">${flowOf(d).venuePaid ? `<span class="pill ok">✓ 已付給館方</span>` : `<span class="pill bad">還沒付給館方</span>`}</div></li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div><div class="actions stack">${(ok => flowPill(ok, ok ? "✓ 已付給館方" : "還沒付給館方", "venue", d))(!!flowOf(d).venuePaid)}</div></li>`;
       }
       if(!r && d && isTreasurer(m)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t) => `<span class="pill ${ok ? "ok" : "bad"}">${ok ? "✓ 已付給" : "還沒付給"}${t}</span>`; return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(fl.reimb, esc(vpName())) : ""}${pill(fl.coachPaid, cn)}</div>`; })()}</li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(!!fl.reimb, esc(vpName()), "reimb") : ""}${pill(!!fl.coachPaid, cn, "coach")}</div>`; })()}</li>`;
       }
       let right;
       if(r){
@@ -853,6 +856,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       case "venue-method": S.draft.venueMethod = b.dataset.v; render(); break;
       case "venue-save":
       case "venue-undo": {
+        if(act === "venue-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "venue-save") doc.venuePaid = { amount: fl.venue, date: today(), method: S.draft.venueMethod || "LINE Pay" };
@@ -864,6 +868,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "coach-save":
       case "coach-undo": {
+        if(act === "coach-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "coach-save") doc.coachPaid = { amount: fl.coach, date: today(), method: S.draft.coachMethod || "LINE Pay" };
@@ -875,6 +880,7 @@ h3{margin:4px 0 0;font-size:.95rem;color:var(--muted);font-weight:700;letter-spa
       }
       case "reimb-save":
       case "reimb-undo": {
+        if(act === "reimb-undo" && !confirm("要取消這筆紀錄嗎？")) break;
         const d = b.dataset.date, key = payKey(d), fl = flowOf(d);
         const doc = { ...(S.pay[key] || {}), date: d, records: (S.pay[key] && S.pay[key].records) || {} };
         if(act === "reimb-save") doc.reimb = { amount: fl.net, date: today(), method: S.draft.reimbMethod || "LINE Pay" };
