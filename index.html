@@ -66,7 +66,6 @@
 }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:1rem;line-height:1.6;font-variant-numeric:tabular-nums}
-html.big{font-size:118.75%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--court)}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 button,input,select{font:inherit;color:inherit}
@@ -77,16 +76,11 @@ button{cursor:pointer}
 .top .wrap{padding-block:14px 0;display:grid;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .mark{width:40px;height:40px;flex:none}
-.fontbtn{flex:none;min-width:52px;min-height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:var(--court-ink);font-weight:900;font-size:1rem;line-height:1.1}
-.fontbtn small{display:block;font-size:.65rem;font-weight:700;opacity:.85}
-.fontbtn[aria-pressed="true"]{background:var(--shuttle);border-color:var(--shuttle);color:#11222c}
 .top .wrap{transition:padding .2s,gap .2s}
 .top.shrunk .wrap{padding-top:6px;gap:4px}
 .top.shrunk .brand p{display:none}
 .top.shrunk .mark{width:28px;height:28px}
 .top.shrunk .brand h1{font-size:1.02rem}
-.top.shrunk .fontbtn{min-height:36px;min-width:44px}
-.top.shrunk .fontbtn small{display:none}
 .top.shrunk .tabs button{min-height:42px}
 .brand h1{margin:0;font-size:1.3rem;font-weight:900;letter-spacing:.02em;line-height:1.2;text-wrap:balance}
 .brand p{margin:0;font-size:.88rem;color:var(--court-soft)}
@@ -336,7 +330,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 <header class="top">
   <div class="wrap">
     <div class="brand">
-      <button id="fontBtn" class="fontbtn" type="button" aria-pressed="false" aria-label="字放大">A＋<small>字放大</small></button>
       <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
         <circle cx="20" cy="20" r="19" fill="var(--court-2)"/>
         <path d="M12 9 L20 24 L28 9 Z" fill="var(--court-ink)" opacity=".9"/>
@@ -1202,14 +1195,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       `;
   }
 
-  // 字放大（記在這支手機）
-  const fontBtn = document.getElementById("fontBtn");
-  const setBig = on => { document.documentElement.classList.toggle("big", on); fontBtn.setAttribute("aria-pressed", String(on)); fontBtn.firstChild.textContent = on ? "A－" : "A＋"; fontBtn.querySelector("small").textContent = on ? "字變小" : "字放大"; fontBtn.setAttribute("aria-label", on ? "字變小" : "字放大"); };
-  try { setBig(localStorage.getItem("ylBig") === "1"); } catch(_){}
   // 往下捲時把標題列縮小，畫面多看一點內容
   { const topEl = document.querySelector("header.top"); let mini = false;
     addEventListener("scroll", () => { const y = scrollY; if(!mini && y > 80){ mini = true; topEl.classList.add("shrunk"); } else if(mini && y < 20){ mini = false; topEl.classList.remove("shrunk"); } }, { passive: true }); }
-  fontBtn.addEventListener("click", () => { const on = !document.documentElement.classList.contains("big"); setBig(on); try { localStorage.setItem("ylBig", on ? "1" : "0"); } catch(_){} });
 
   // ---------- events ----------
   document.querySelector(".tabs").addEventListener("click", e => {
