@@ -156,25 +156,34 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:10px}
 .steps li{line-height:1.55}
 .steps li::marker{font-weight:900;color:var(--accent)}
-.fc{display:grid;gap:0;margin-top:4px}
-.fc-box{border-radius:12px;padding:12px 14px;text-align:center;display:grid;gap:3px}
-.fc-title{font-weight:900;font-size:1rem}
-.fc-big{font-weight:900;font-size:1.5rem;line-height:1.2}
-.fc-note{font-size:.8rem;color:var(--muted);line-height:1.45}
+.fc{display:grid;margin-top:2px}
+.fc-step{display:flex;align-items:center;gap:8px;font-weight:900;font-size:.9rem;color:var(--muted);margin:4px 0 8px}
+.fc-step:not(:first-child){margin-top:18px}
+.fc-no{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--court);color:var(--court-ink);font-size:.8rem}
+.fc-box{border-radius:14px;padding:14px 14px 12px;display:grid;gap:6px}
+.fc-head{font-weight:900;font-size:.98rem;text-align:center}
+.fc-big{font-weight:900;font-size:1.7rem;line-height:1.1;text-align:center;letter-spacing:.01em}
+.fc-notes{margin:2px 0 0;padding:0 0 0 1.1em;display:grid;gap:4px;font-size:.84rem;line-height:1.55;color:var(--fg)}
+.fc-notes li::marker{color:var(--muted)}
+.fc-notes b{font-weight:900}
+.fc-chip{justify-self:center;font-size:.8rem;font-weight:800;padding:3px 12px;border-radius:999px;background:var(--surface);color:var(--accent)}
 .fc-blue{background:var(--accent-soft)} .fc-blue .fc-big{color:var(--accent)}
 .fc-line{border:1.5px solid var(--accent);background:var(--surface)}
 .fc-green{background:var(--ok-bg)} .fc-green .fc-big{color:var(--ok)}
 .fc-orange{background:var(--warn-bg)} .fc-orange .fc-big{color:var(--warn)}
-.fc-arrow{display:grid;justify-items:center;gap:2px;padding:6px 0}
-.fc-ar{font-weight:900;font-size:1.1rem;line-height:1}
-.fc-tag{font-size:.75rem;font-weight:700;padding:2px 10px;border-radius:999px}
+.fc-split .fc-big{font-size:1.4rem}
+.fc-split .fc-notes{padding:0;list-style:none;text-align:center;font-size:.8rem}
+.fc-arrow{display:grid;justify-items:center;gap:3px;padding:8px 0}
+.fc-ar{font-size:.8rem;line-height:1}
+.fc-tag{font-size:.76rem;font-weight:800;padding:2px 10px;border-radius:999px}
 .fc-b .fc-ar,.fc-b .fc-tag{color:var(--accent)} .fc-b .fc-tag{background:var(--accent-soft)}
 .fc-g .fc-ar,.fc-g .fc-tag{color:var(--ok)} .fc-g .fc-tag{background:var(--ok-bg)}
 .fc-o .fc-ar,.fc-o .fc-tag{color:var(--warn)} .fc-o .fc-tag{background:var(--warn-bg)}
 .fc-split{display:grid;gap:10px}
 .fc-split.fc-two{grid-template-columns:1fr 1fr}
 .fc-col{display:grid;grid-template-rows:auto 1fr}
-.fc-hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.fc-sum{margin-top:10px;padding:9px 12px;border:1.5px dashed var(--line);border-radius:10px;font-size:.84rem;text-align:center;color:var(--muted);line-height:1.5}
+.fc-sum b{color:var(--fg)}
 .big-money{margin:0;font-size:1.8rem;font-weight:900;color:var(--warn);font-variant-numeric:tabular-nums}
 button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:700}
 .sub{font-size:.88rem;color:var(--muted);flex-basis:100%}
@@ -711,36 +720,49 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(!fl.vp && !fl.tr) return "";
     const tr = esc(trName()), vp = esc(vpName()), cn = esc(S.settings.coachNick || "教練");
     const num = x => Number(x).toLocaleString("en-US");
-    const lv = leaveCount(d), cf = fees(fl.ci.n, d), s = S.settings;
+    const lv = leaveCount(d), cf = fees(fl.ci.n, d), s = S.settings, n = fl.ci.n, pp = fl.ci.pp;
+    const trIn = !!fl.tr && fl.ci.ids.includes(fl.tr.id), vpIn = !!fl.vp && fl.ci.ids.includes(fl.vp.id);
     const payers = fl.ci.ids.filter(id => !(fl.vp && id === fl.vp.id) && !(fl.tr && id === fl.tr.id)).length;
-    const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
-    const box = (cls, title, big, notes) => `<div class="fc-box ${cls}"><div class="fc-title">${title}</div>${big ? `<div class="fc-big">${big}</div>` : ""}${notes.filter(Boolean).map(n => `<div class="fc-note">${n}</div>`).join("")}</div>`;
-    const arrow = (cls, label) => `<div class="fc-arrow ${cls}"><span class="fc-ar">↓</span><span class="fc-tag">${label}</span></div>`;
-    const top = box("fc-blue", `其他 ${payers} 位隊友`, `每人 ${money(fl.ci.pp)}`, [
-      `共收 ${money(payers * fl.ci.pp)}`,
-      `當天出席 ${fl.ci.n} 人${lv ? `（${lv} 人請假）` : ""}，教練費＋場地費共 ${money(cf.session)}，由出席的人平分`,
-      skip.length ? `${skip.join("和")}的課費不用轉（${fl.tr && fl.ci.ids.includes(fl.tr.id) ? `${tr}的在自己手上` : ""}${skip.length === 2 ? "，" : ""}${fl.vp && fl.ci.ids.includes(fl.vp.id) ? `${vp}的從場地費扣` : ""}）` : "",
+    const got = payers * pp + (trIn ? pp : 0) + (fl.vp && fl.net < 0 ? -fl.net : 0);   // 吉哥手上的錢
+    const out = fl.coach + (fl.vp && fl.net > 0 ? fl.net : 0);                          // 吉哥要付出去的錢
+    const left = got - out;
+    const box = (cls, head, big, notes, foot) => `<div class="fc-box ${cls}"><div class="fc-head">${head}</div>${big ? `<div class="fc-big">${big}</div>` : ""}${notes.length ? `<ul class="fc-notes">${notes.filter(Boolean).map(t => `<li>${t}</li>`).join("")}</ul>` : ""}${foot ? `<div class="fc-chip">${foot}</div>` : ""}</div>`;
+    const arrow = (cls, label) => `<div class="fc-arrow ${cls}"><span class="fc-ar">▼</span><span class="fc-tag">${label}</span></div>`;
+    const step = (k, t) => `<div class="fc-step"><span class="fc-no">${k}</span>${t}</div>`;
+    const skipWho = [trIn ? tr : "", vpIn ? vp : ""].filter(Boolean);
+
+    // ① 隊友轉帳
+    const top = box("fc-blue", `${payers} 位隊友，每人轉給${tr}`, money(pp), [
+      `這堂 <b>${n} 人出席</b>${lv ? `、${lv} 人請假` : ""}，教練費 ${num(fl.coach)}＋場地費 ${num(fl.venue)}＝<b>${num(cf.session)}</b>，${n} 人平分${cf.exact ? "" : "（進位到整數）"}。`,
+      skipWho.length ? `${skipWho.join("、")}不用轉：${trIn ? `${tr}的錢本來就在自己手上` : ""}${trIn && vpIn ? "，" : ""}${vpIn ? `${vp}的直接從她墊的場地費扣掉` : ""}。` : "",
       s.payInfo ? esc(s.payInfo) : "",
+    ], `${payers} 人 × ${num(pp)}＝${money(payers * pp)}`);
+
+    // ② 財務付款
+    const mid = box("fc-line", `${tr}收齊後統一付款`, "", [
+      `${tr}手上共 <b>${money(got)}</b>${trIn || (fl.vp && fl.net < 0) ? `（大家轉的 ${num(payers * pp)}${trIn ? `＋自己的 ${num(pp)}` : ""}${fl.vp && fl.net < 0 ? `＋${vp}補的 ${num(-fl.net)}` : ""}）` : ""}，拿來付下面${fl.vp && fl.net > 0 ? "兩" : "這"}筆。`,
     ]);
-    const mid = box("fc-line", `${tr}｜費用統籌`, "", [`收齊課費後，負責付教練費${fl.vp && fl.net > 0 ? `和${vp}的場地費差額` : ""}`]);
-    const coachBox = box("fc-green", cn, money(fl.coach), [`教練費（${s.coachHours} 小時 × ${money(s.coachRate)}）`]);
-    let vpBox = "", vpArrow = "";
+    const coachBox = box("fc-green", `付給${cn}`, money(fl.coach), [`教練費 ${s.coachHours} 小時 × ${num(s.coachRate)}`]);
+    let vpCol = "";
     if(fl.vp && fl.net > 0){
-      vpArrow = arrow("fc-o", `支付 ${money(fl.net)}`);
-      vpBox = box("fc-orange", vp, money(fl.net), [fl.vpShare ? `場地費差額（${num(fl.venue)}－${num(fl.vpShare)}）` : `${vp}當天請假，場地費全額付還`]);
-    } else if(fl.vp && fl.net < 0){
-      vpArrow = arrow("fc-o", `${vp}補 ${money(-fl.net)}`);
-      vpBox = box("fc-orange", `${vp} → ${tr}`, money(-fl.net), [`${vp}的課費比場地費多，要再補給${tr}`]);
+      vpCol = `<div class="fc-col">${arrow("fc-o", "還場地費")}${box("fc-orange", `還給${vp}`, money(fl.net), [fl.vpShare ? `${vp}墊了 ${num(fl.venue)}，扣掉自己的課費 ${num(fl.vpShare)}，還她 ${num(fl.net)}` : `${vp}這堂請假，墊的場地費全部還她`])}</div>`;
     }
-    const two = vpBox ? " fc-two" : "";
-    const venue = fl.vp ? `<hr class="fc-hr">` + box("fc-orange fc-soft", `${vp} → 館方`, money(fl.venue), [
-      cf.season ? `季租 2 面場地，已整季預付（每小時 ${money(cf.rate)} × ${s.venueHours} 小時）` : `先代墊 ${cf.two ? 2 : 1} 面場地、${s.venueHours} 小時租金（每小時 ${money(cf.rate)}）`,
-      fl.vpShare ? `其中扣除${vp}自己的課費 ${money(fl.vpShare)}` : `${vp}當天請假，不用分攤課費`,
+    const sum = `<div class="fc-sum">${left > 0 ? `收 ${num(got)} － 付 ${num(out)}，剩 <b>${money(left)}</b> 是進位的零頭，存進班費。` : left === 0 ? `收 ${num(got)}、付 ${num(out)}，剛好打平。` : `收 ${num(got)}、付 ${num(out)}，還差 <b>${money(-left)}</b>。`}</div>`;
+
+    // ③ 場地費
+    const venue = fl.vp ? box("fc-orange fc-soft", `${vp}付給館方`, money(fl.venue), [
+      cf.season ? `季租 2 面場地，${vp}已經整季先付清，這堂分到 ${num(fl.venue)}（每小時 ${num(cf.rate)} × ${s.venueHours} 小時）。` : `${vp}先幫大家墊付 ${cf.two ? 2 : 1} 面場地、${s.venueHours} 小時（每小時 ${num(cf.rate)}）。`,
+      vpIn ? `她自己這堂的課費 ${num(fl.vpShare)} 就從這筆扣，不用另外轉。` : `${vp}這堂請假，不用分攤課費。`,
     ]) : "";
+
     return `<div class="card flow"><h2>錢怎麼走？</h2>
-      <div class="fc">${top}${arrow("fc-b", `轉帳給${tr}`)}${mid}
-        <div class="fc-split${two}"><div class="fc-col">${arrow("fc-g", `支付 ${money(fl.coach)}`)}${coachBox}</div>${vpBox ? `<div class="fc-col">${vpArrow}${vpBox}</div>` : ""}</div>
-        ${venue}
+      <div class="fc">
+        ${step(1, "隊友轉帳")}${top}
+        ${arrow("fc-b", `合計 ${money(payers * pp)} 轉給${tr}`)}
+        ${step(2, `${tr}付款`)}${mid}
+        <div class="fc-split${vpCol ? " fc-two" : ""}"><div class="fc-col">${arrow("fc-g", "付教練費")}${coachBox}</div>${vpCol}</div>
+        ${sum}
+        ${venue ? `${step(3, "場地費")}${venue}` : ""}
       </div>
       </div>`;
   }
