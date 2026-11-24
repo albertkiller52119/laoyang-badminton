@@ -651,7 +651,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const paid = mustPay.filter(m => rec[m.id]);
       const unpaid = mustPay.filter(m => !rec[m.id]);
       // 財務、場地負責人不用轉課費，另外列在下面（財務在前）
-      const special = who.filter(m => !mustPay.includes(m) && !rec[m.id]).sort((a, b) => isTreasurer(b) - isTreasurer(a));
+      const special = who.filter(m => !mustPay.includes(m) && !rec[m.id]).sort((a, b) => isTreasurer(a) - isTreasurer(b));
       const listed = [...unpaid, ...paid, ...who.filter(m => !mustPay.includes(m) && rec[m.id])];
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
