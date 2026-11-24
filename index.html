@@ -827,7 +827,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       </div>
       ${S.date !== nextClassDate(sch) ? `<div><button class="link" data-act="date-next">回到最近一次上課</button></div>` : ""}
       ${classBanner(S.date)}
-      ${S.sheet ? `<p class="muted sheet-hint">📋 請假、停課以「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄試算表</a>」為準，會自動同步；要請假請到試算表填。${S.canWrite && sheetUnknown().length ? `<br><b class="bad">試算表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）` : ""}</p>` : ""}
+      ${S.sheet ? `<p class="muted sheet-hint">📋 請假、停課以「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄試算表</a>」為準，會自動同步${S.canWrite && sheetUnknown().length ? `<br><b class="bad">試算表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）` : ""}</p>` : ""}
       ${(() => { const dl = shiftDate(S.date, -7), past = today() > dl; return S.date >= today() ? `<div class="deadline${past ? " past" : ""}">🗓️ <span>這堂請假截止：<b>${labelDate(dl)}</b>${past ? "（已過，之後請假一樣要分攤）" : " 前告知"}</span></div>` : ""; })()}`;
     if(!list.length) return h + noMembers();
     h += `
