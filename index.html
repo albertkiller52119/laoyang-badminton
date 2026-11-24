@@ -580,19 +580,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤課程費用。</li>
     </ul>
   </div>`;
-  // 點名頁：球館規定（場租合約書）
-  const venueRules = () => `<details class="rules">
-    <summary><b>${esc(S.settings.location || "球館")}規定</b></summary>
-    <ul class="rule-list">
-      <li><strong>服裝：</strong>穿運動服、運動鞋；不能穿涼鞋、皮鞋、拖鞋、黑膠底鞋。</li>
-      <li><strong>場內禁止：</strong>抽菸、喝酒、檳榔、飲食、口香糖；雨具不能進球場。</li>
-      <li><strong>只用租到的場地：</strong>用到沒租的場地，館方會收原價。</li>
-      <li><strong>器材設備：</strong>弄壞要照價賠償；私人物品自己保管。</li>
-      <li><strong>小朋友：</strong>隨行兒童不能在場內奔跑。</li>
-      <li><strong>拍照錄影、張貼：</strong>要先經過館方同意。</li>
-      <li><strong>颱風、天災：</strong>政府宣布停班停課，館方會暫停開放，場租下季扣除。</li>
-    </ul>
-  </details>`;
   // 管理員：場租合約重點
   const contractBox = () => `<h3>場租合約重點</h3>
       <ul class="rule-list">
@@ -904,8 +891,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           </div></li>`;
       }).join("") + `</ul>
       ${adminHintP("點完記得按下方「確認儲存」；點錯再點一次就取消。")}
-      ${leaveBox()}
-      ${venueRules()}`;
+      ${leaveBox()}`;
     return h;
   }
 
