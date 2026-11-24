@@ -336,6 +336,7 @@ h4{margin:0;font-size:.95rem;font-weight:800}
 .roster p{margin:4px 0 0;line-height:1.7}
 .foot{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px 32px;color:var(--muted);font-size:.88rem}
 .foot .link{font-size:.88rem}
+.login-bottom{margin-top:8px;margin-bottom:32px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .dates{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .date{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface-2);display:grid;gap:4px;justify-items:start}
@@ -1753,6 +1754,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") idleCheck(); });
   function renderAdminBar(){
     if(!S.online){ adminBar.hidden = true; return; }
+    // 登入表單放在頁面最下方（頁尾上面）；登入後的管理員列回到最上方
+    const topWrap = document.getElementById("notice").parentNode, footEl = document.getElementById("foot");
+    if(!S.canWrite && S.loginOpen){ footEl.before(adminBar); adminBar.classList.add("wrap", "login-bottom"); }
+    else if(adminBar.parentNode !== topWrap){ topWrap.prepend(adminBar); adminBar.classList.remove("wrap", "login-bottom"); }
     adminBar.hidden = false;
     if(S.canWrite){
       adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定<small class="muted" style="display:block">${S.remember ? "這支手機會記住登入" : "關掉網頁或 2 小時沒操作會自動登出"}</small></span><button class="btn small" id="logoutBtn">登出</button></div>`;
@@ -1766,7 +1771,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(foot) foot.innerHTML = S.canWrite || S.loginOpen ? "" : `<span>資料有問題請找${mg ? ` <b>${esc(mg.name)}</b>` : "管理員"}</span><button class="link" id="loginBtn">管理員登入</button>`;
   }
   document.getElementById("foot").addEventListener("click", e => {
-    if(e.target.id === "loginBtn"){ S.loginOpen = true; renderAdminBar(); window.scrollTo(0, 0); }
+    if(e.target.id === "loginBtn"){ S.loginOpen = true; renderAdminBar(); adminBar.scrollIntoView({ block: "center" }); }
   });
   adminBar.addEventListener("click", e => {
     if(e.target.id === "loginBtn"){ S.loginOpen = true; renderAdminBar(); }
