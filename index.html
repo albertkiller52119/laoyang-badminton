@@ -1777,7 +1777,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       adminBar.hidden = true; adminBar.innerHTML = "";
     }
     const mg = active().find(m => m.id === S.settings.manager), foot = document.getElementById("foot");
-    if(foot) foot.innerHTML = S.canWrite || S.loginOpen ? "" : `<span>資料有問題請找${mg ? ` <b>${esc(mg.name)}</b>` : "管理員"}</span><button class="link" id="loginBtn">管理員登入</button>`;
+    if(foot) foot.innerHTML = S.canWrite || S.loginOpen ? "" : `<span>資料有問題請找${mg ? ` <b>${esc(mg.name.length >= 3 ? mg.name.slice(1) : mg.name)}</b>` : "管理員"}</span><button class="link" id="loginBtn">管理員登入</button>`;
   }
   document.getElementById("foot").addEventListener("click", e => {
     if(e.target.id === "loginBtn"){ S.loginOpen = true; renderAdminBar(); adminBar.scrollIntoView({ block: "center" }); }
