@@ -956,8 +956,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       `<span class="pill ${paidN >= mustN ? "ok" : early ? "wait" : "bad"}">已轉 ${paidN}／${mustN} 人</span>`);
     // ② 吉哥付出去
     const coach = fl.coach > 0
-      ? row("coach", `教練費・${cn}`, `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
-      : row("coach", `教練費・${cn}`, "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
+      ? row("coach", "教練費", `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
+      : row("coach", "教練費", "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
     let venue;
     if(fl.pre) venue = row("venue", `場地費・館方${fl.season ? "（季租）" : ""}`, `${bkName() ? `${bkName()}租借・` : ""}${tr}已匯款・${fl.season ? "季租 2 面" : courts}`, money(fl.venue), `<span class="pill ok">✓ 已匯款</span>`);
     else if(fl.season){ const c = seasonCalc(fl.sz); venue = row("venue", "場地費・館方（季租）", `${bkName() ? `${bkName()}租借・` : ""}${tr}整季 ${c.N} 堂一次匯 ${num(c.total)}`, money(fl.venue), st(fl.venueDone, "spaid", seasonPaid(fl.sz))); }
