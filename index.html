@@ -173,6 +173,9 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:10px}
 .steps li{line-height:1.55}
 .steps li::marker{font-weight:900;color:var(--accent)}
+.sheet-alert{background:var(--warn-bg);border:1.5px solid var(--warn);border-radius:var(--radius);padding:12px 14px;display:grid;gap:6px;font-size:.92rem;line-height:1.5}
+.sheet-alert .sa-h{color:var(--warn);font-size:1rem}
+.sheet-alert a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .sheet-hint a{color:var(--accent);font-weight:800}
 .sz-ed{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;margin-bottom:10px}
 .sz-ed-h{display:grid;gap:2px} .sz-ed-h span{font-size:.84rem;color:var(--muted)}
@@ -439,6 +442,27 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       out[d] = doc;
     });
     S.att = out;
+  }
+  // 請假表有新增／取消請假時，提醒管理員確認（記在這支手機）
+  const SEEN_KEY = "ylSheetSeen";
+  const leaveKeys = () => { const out = []; if(S.sheet) Object.entries(S.sheet.dates).forEach(([d, x]) => { if(d >= S.settings.start) x.leave.forEach(n => out.push(d + "|" + n)); }); return out.sort(); };
+  const getSeen = () => { try { const v = localStorage.getItem(SEEN_KEY); return v == null ? null : JSON.parse(v); } catch(_){ return []; } };
+  const setSeen = a => { try { localStorage.setItem(SEEN_KEY, JSON.stringify(a)); } catch(_){} };
+  function sheetAlert(){
+    if(!S.canWrite || !S.sheet) return "";
+    const cur = leaveKeys(), seen = getSeen();
+    if(seen === null){ setSeen(cur); return ""; }   // 第一次打開：先記下目前的請假，不跳提醒
+    const add = cur.filter(k => !seen.includes(k)), del = seen.filter(k => !cur.includes(k) && k >= S.settings.start);
+    if(!add.length && !del.length) return "";
+    const fmt = k => { const [d, n] = k.split("|"); return `<b>${md(d)}</b> ${esc(n)}`; };
+    const dates = [...new Set([...add, ...del].map(k => k.split("|")[0]))].sort();
+    return `<div class="sheet-alert" role="status">
+      <b class="sa-h">📋 請假紀錄表有更新，已同步到網頁</b>
+      ${add.length ? `<div>新增請假：${add.map(fmt).join("、")}</div>` : ""}
+      ${del.length ? `<div>取消請假：${del.map(fmt).join("、")}</div>` : ""}
+      <div class="muted">重新計算：${dates.map(d => { const ci = classInfo(d); return offReason(d) ? `${md(d)} 停課` : `${md(d)} 出席 ${ci.n} 人、每人 ${money(ci.pp)}`; }).join("；")}</div>
+      <div class="actions"><button class="btn small primary" data-act="sheet-ok">確認，知道了</button><a class="btn small" href="${SHEET_URL}" target="_blank" rel="noopener">打開請假表</a></div>
+    </div>`;
   }
   // 寫回雲端時，試算表管的日期不存請假（以試算表為準）
   const cloudDoc = doc => !sheetDay(doc.date) ? doc : { date: doc.date, records: Object.fromEntries(Object.entries(doc.records || {}).filter(([, v]) => v !== "leave")) };
@@ -720,7 +744,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const sch = schedule();
     if(!S.date) S.date = nextClassDate(sch);
     if(!S.payDate) S.payDate = nextClassDate(sch);
-    app.innerHTML = ({checkin:viewCheckin, pay:viewPay, stats:viewStats, members:viewMembers})[S.tab](sch);
+    app.innerHTML = sheetAlert() + ({checkin:viewCheckin, pay:viewPay, stats:viewStats, members:viewMembers})[S.tab](sch);
   }
 
   function noMembers(){
@@ -1266,6 +1290,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     switch(act){
       case "goto": S.tab = b.dataset.tab; render(); break;
       case "me-change": S.meEdit = true; render(); break;
+      case "sheet-ok": setSeen(leaveKeys()); render(); toast("好的，已確認請假更新"); break;
       case "sz-date": case "sz-cancel": {
         const d = b.dataset.date, x = seasonOf(d); if(!x) { toast("這天不在任何一季裡"); break; }
         const was = x.dates.includes(d);
