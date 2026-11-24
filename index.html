@@ -361,7 +361,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const CLASSES = ["WH1","WH2","SL3","SL4","SU5","SH6","未分級"];
   const METHODS = ["現金","LINE Pay"];
   const ST = {present:"出席", leave:"請假", absent:"缺席"};
-  const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-05",
+  const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-12",
     coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:6,
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
@@ -381,8 +381,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 往前／往後跳一週，遇到季內沒租場地的週六再多跳一週
   const stepWeek = (d, n) => { let x = shiftDate(d, 7 * n); for(let g = 0; seasonOff(x) && g < 20; g++) x = shiftDate(x, 7 * n); return x; };
   // 季租以外、個別指定的日期：取消的週六（含原因），和固定開幾面場地的週六
+  const FIRST_DAY = "2026-12-12";   // 團課第一堂，之前的日期都不算
   const OFF_DATES = { "2026-12-05": "沒借到場地" };
-  const COURT_FIX = { "2026-12-12": 2, "2026-12-19": 1, "2026-12-26": 2 };
+  const COURT_FIX = { "2026-12-12": 1, "2026-12-19": 1, "2026-12-26": 2 };
   const seasonOff = d => { if(OFF_DATES[d]) return true; const x = seasonOf(d); return !!x && d >= SEASON_FROM && !x.dates.includes(d); };
 
   const pad = n => String(n).padStart(2,"0");
@@ -445,8 +446,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 季租開始前照原規則（人數決定 1 面或 2 面）
   const preSeason = () => today() < SEASON_FROM;
   const preItem = extra => { const st = S.settings, ks = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM).sort();
-    const two = ks.filter(d => COURT_FIX[d] === 2), one = ks.filter(d => COURT_FIX[d] === 1), off = Object.keys(OFF_DATES).filter(d => d < SEASON_FROM).sort();
-    const parts = [off.map(d => `${md(d)} ${OFF_DATES[d]}，取消`).join("；"), two.length ? `${two.map(md).join("、")} 開 2 面（${money(st.venueRate2)}／時）` : "", one.length ? `${one.map(md).join("、")} 開 1 面（${money(st.venueRate)}／時）` : ""].filter(Boolean);
+    const two = ks.filter(d => COURT_FIX[d] === 2), one = ks.filter(d => COURT_FIX[d] === 1), off = Object.keys(OFF_DATES).filter(d => d >= S.settings.start && d < SEASON_FROM).sort();
+    const parts = [off.map(d => `${md(d)} ${OFF_DATES[d]}，取消`).join("；"), [[two, 2, st.venueRate2], [one, 1, st.venueRate]].filter(x => x[0].length).sort((p, q) => p[0][0] < q[0][0] ? -1 : 1).map(([ds, k, r]) => `${ds.map(md).join("、")} 開 ${k} 面（${money(r)}／時）`).join("；")].filter(Boolean);
     return `<li><strong>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：</strong>${parts.join("；")}。${extra || ""}</li>`; };
   // 點名頁：請假規則
   const leaveBox = () => `<div class="rules">
@@ -1500,6 +1501,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       if(v){
         const next = { ...DEF, ...v };
         NUMS.forEach(k => { next[k] = Number(next[k]); if(!(next[k] >= 0)) next[k] = DEF[k]; });
+        if(!next.start || next.start < FIRST_DAY) next.start = FIRST_DAY;   // 整個系統從 12/12 開始算
         S.settings = next;
       }
       const sv = (d.settings || {}).seasons;
