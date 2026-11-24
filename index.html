@@ -8,6 +8,14 @@
 <title>老楊輪羽班點名簿</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="老楊輪羽班點名簿">
+<meta property="og:description" content="輪椅羽球班的點名、請假、繳費與出席統計">
+<meta property="og:url" content="https://albertkiller52119.github.io/laoyang-badminton/">
+<meta property="og:image" content="https://albertkiller52119.github.io/laoyang-badminton/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#0a4a5f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -69,9 +77,17 @@ button{cursor:pointer}
 .top .wrap{padding-block:14px 0;display:grid;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .mark{width:40px;height:40px;flex:none}
-.fontbtn{margin-left:auto;flex:none;min-width:52px;min-height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:var(--court-ink);font-weight:900;font-size:1rem;line-height:1.1}
+.fontbtn{flex:none;min-width:52px;min-height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:var(--court-ink);font-weight:900;font-size:1rem;line-height:1.1}
 .fontbtn small{display:block;font-size:.65rem;font-weight:700;opacity:.85}
 .fontbtn[aria-pressed="true"]{background:var(--shuttle);border-color:var(--shuttle);color:#11222c}
+.top .wrap{transition:padding .2s,gap .2s}
+.top.shrunk .wrap{padding-top:6px;gap:4px}
+.top.shrunk .brand p{display:none}
+.top.shrunk .mark{width:28px;height:28px}
+.top.shrunk .brand h1{font-size:1.02rem}
+.top.shrunk .fontbtn{min-height:36px;min-width:44px}
+.top.shrunk .fontbtn small{display:none}
+.top.shrunk .tabs button{min-height:42px}
 .brand h1{margin:0;font-size:1.3rem;font-weight:900;letter-spacing:.02em;line-height:1.2;text-wrap:balance}
 .brand p{margin:0;font-size:.88rem;color:var(--court-soft)}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
@@ -163,6 +179,17 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:10px}
 .steps li{line-height:1.55}
 .steps li::marker{font-weight:900;color:var(--accent)}
+.sz-ed{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px;margin-bottom:10px}
+.sz-ed-h{display:grid;gap:2px} .sz-ed-h span{font-size:.84rem;color:var(--muted)}
+.dchip{min-height:44px;min-width:58px;padding:6px 10px;border-radius:999px;border:2px solid var(--line);background:var(--surface-2);color:var(--muted);font-weight:800;text-decoration:line-through}
+.dchip[aria-pressed="true"]{background:var(--c-venue-bg);border-color:var(--c-venue);color:var(--c-venue);text-decoration:none}
+.dchip:disabled{opacity:.5}
+.calc.fund td small{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
+.calc.fund td.ok{color:var(--ok);font-weight:800} .calc.fund td.bad{color:var(--bad);font-weight:800}
+.me-att{font-size:.9rem;padding:8px 10px;border-radius:10px;background:var(--accent-soft)}
+.me-att b{font-size:1.1rem;color:var(--accent)} .me-att span{color:var(--muted);font-size:.82rem}
+.remember{display:flex;align-items:center;gap:8px;flex-basis:100%;font-size:.9rem;min-height:44px}
+.remember input{width:22px;height:22px}
 .season h2 small{font-size:.8rem;font-weight:700;color:var(--muted);margin-left:8px}
 .sz-top{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sz-top>div{background:var(--c-venue-bg);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
@@ -309,6 +336,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 <header class="top">
   <div class="wrap">
     <div class="brand">
+      <button id="fontBtn" class="fontbtn" type="button" aria-pressed="false" aria-label="字放大">A＋<small>字放大</small></button>
       <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
         <circle cx="20" cy="20" r="19" fill="var(--court-2)"/>
         <path d="M12 9 L20 24 L28 9 Z" fill="var(--court-ink)" opacity=".9"/>
@@ -319,7 +347,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <h1 id="groupName">老楊輪羽班</h1>
         <p id="groupSub">輪椅羽球點名簿</p>
       </div>
-      <button id="fontBtn" class="fontbtn" type="button" aria-pressed="false" aria-label="字放大">A＋<small>字放大</small></button>
     </div>
     <nav class="tabs" role="tablist" aria-label="功能">
       <button role="tab" data-tab="checkin" aria-selected="true">點名</button>
@@ -346,10 +373,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     venuePayer:"m03", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
   // 季租 2 面場地：從 SEASON_FROM 起不論人數都是 2 面；季內沒列到的週六不上課
-  const SEASON_FROM = "2027-01-02";
-  const SEASONS = [
+  let SEASON_FROM = "2027-01-02";
+  const DEF_SEASONS = [
     { name:"2027 年 1～3 月", from:"2027-01-01", to:"2027-03-31", dates:["2027-01-02","2027-01-09","2027-01-16","2027-02-13","2027-02-20","2027-02-27","2027-03-06","2027-03-13","2027-03-20","2027-03-27"] },
   ];
+  let SEASONS = [];
+  function setSeasons(list){
+    SEASONS = (list || []).filter(x => x && x.from && x.to).map(x => ({ name: String(x.name || ""), from: x.from, to: x.to, dates: [...new Set(x.dates || [])].sort() })).sort((a, b) => a.from < b.from ? -1 : 1);
+    SEASON_FROM = SEASONS.flatMap(x => x.dates).sort()[0] || "9999-12-31";
+  }
+  setSeasons(DEF_SEASONS);
   const seasonOf = d => SEASONS.find(x => d >= x.from && d <= x.to) || null;
   // 季內、但沒租到場地的週六（開季租之前的日期不算）
   // 往前／往後跳一週，遇到季內沒租場地的週六再多跳一週
@@ -357,6 +390,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const seasonOff = d => { const x = seasonOf(d); return !!x && d >= SEASON_FROM && !x.dates.includes(d); };
 
   const pad = n => String(n).padStart(2,"0");
+  const weekday = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d).getDay(); };
   const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const today = () => fmtDate(new Date());
   const shiftDate = (s,n) => { const [y,m,d] = s.split("-").map(Number); return fmtDate(new Date(y,m-1,d+n)); };
@@ -372,7 +406,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     loaded:{members:false, settings:false},
     online:false, pw:"", canWrite:false, loginOpen:false,
     payOpen:null, payConfirm:null, editId:null, delConfirm:null,
-    draft:{}
+    draft:{}, fund:{ items:[] }, remember:false
   };
 
   const app = document.getElementById("app");
@@ -596,7 +630,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const msg = String(e && e.message || e || "");
     if(msg.includes("密碼")){
       S.canWrite = false; S.pw = "";
-      try { localStorage.removeItem("ylAdminPw"); } catch(_){}
+      try { localStorage.removeItem("ylAdminPw"); sessionStorage.removeItem("ylAdminPwS"); } catch(_){}
       renderAdminBar(); render();
       toast("密碼不對或已經換了，請重新登入");
     } else {
@@ -656,6 +690,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div class="me-cell ${next.cls}"><span>下一堂 ${md(nd)}</span><b>${next.big}</b><small>${next.note}</small></div>
         <div class="me-cell ${owed.length ? "bad" : "ok"}"><span>之前的課</span><b>${owed.length ? money(total) : "✓ 付清"}</b><small>${owed.length ? `還沒付 ${owed.length} 堂：${owed.map(md).join("、")}` : "沒有欠款"}</small></div>
       </div>
+      ${(() => { const t = today(), x = SEASONS.find(z => z.dates.length && z.dates[0] <= t && z.to >= t);
+        const ds = x ? heldDates(x.dates) : pastClasses(sch).map(i => i.date).filter(d => statusOf(d) !== "paused");
+        if(!ds.length) return "";
+        const a = ds.filter(d => attended(m, d)).length;
+        return `<div class="me-att">🏸 ${x ? "本季" : "開課以來"}出席 <b>${a}</b>／${ds.length} 堂${x ? `<span>（本季共 ${x.dates.length} 堂）</span>` : ""}${a === ds.length && a >= 2 ? "　全勤，太棒了！" : ""}</div>`; })()}
       ${pay ? `<p class="muted">課費轉給${esc(trName())}，可用 LINE Pay 或現金。${S.settings.payInfo ? esc(S.settings.payInfo) : ""}</p>` : ""}
     </div>`;
   }
@@ -674,11 +713,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 點名頁的說明橫幅
   function classBanner(d){
     const ci = classInfo(d), f = fees(ci.n, d);
-    if(seasonOff(d) && statusOf(d) === "planned") return `<div class="banner mute">這週沒有上課<small>這天不在季租場地的日期裡，不上課、不收費。</small></div>`;
+    if(seasonOff(d) && statusOf(d) === "planned") return `<div class="banner mute">這週沒有上課<small>這天不在季租場地的日期裡，不上課、不收費。</small></div>` + (S.canWrite && d >= today() ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">恢復這堂（有租場地）</button></div>` : "");
+    const szCancel = S.canWrite && d >= today() && statusOf(d) === "planned" && seasonOf(d) && seasonOf(d).dates.includes(d) ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">這堂取消（場地也退）</button></div>` : "";
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
     if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + modeSwitch("paused");
     if(ci.st === "single") return `<div class="banner ok">這週其他人照上<small>${esc(leaversOf(d).join("、"))} 請假。一堂 ${money(f.session)}（${courtLabel(f)}）由 ${ci.n} 位隊友平分，每人 ${money(ci.pp)}。</small></div>` + modeSwitch("single");
-    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${courtLabel(f)}）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>`;
+    return `<div class="banner ok">每人 ${money(ci.pp)}<small>一堂 ${money(f.session)}（${courtLabel(f)}）由 ${ci.n} 位隊友平分。${adminHint("有人請假就點「請假」，再選整班暫停或其他人照上。")}</small></div>` + szCancel;
   }
   // 繳費頁只在暫停那週提醒不收費
   const payNotice = d => statusOf(d) === "paused"
@@ -693,7 +733,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     list.forEach(m => { if(c[rec[m.id]] !== undefined) c[rec[m.id]]++; });
     const unmarked = list.length - c.present - c.leave - c.absent;
     let h = `
-      ${meCard(sch)}
       <div class="bar">
         <button class="nav" data-act="date" data-n="-1" aria-label="上一次上課"${S.date <= S.settings.start ? " disabled" : ""}>‹</button>
         <label class="picker"><span>${labelDate(S.date)}</span><input type="date" id="datePick" value="${S.date}" min="${S.settings.start}" aria-label="選擇上課日期"></label>
@@ -749,10 +788,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const listed = [...unpaid, ...paid, ...who.filter(m => !mustPay.includes(m) && rec[m.id])];
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
-        ${heroCard(d, ci, mustPay.length, paid.length)}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
         <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
-        <h3>隊友課費（還沒轉的排前面）</h3>
+        <h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
         ${special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
         ${flowCard(d, fl)}`;
@@ -761,19 +799,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return h;
   }
 
-  // 繳費頁最上面：這堂摘要
-  function heroCard(d, ci, need, done){
-    const num = x => Number(x).toLocaleString("en-US");
-    const f = fees(ci.n, d), lv = leaveCount(d), extra = ci.pp * ci.n - f.session;
-    const pct = need ? Math.round(done / need * 100) : 100;
-    return `<div class="hero">
-      <div class="hero-top"><span>${labelDate(d)} 這堂</span><span class="hero-chip">${courtLabel(f)}</span></div>
-      <div class="hero-main"><b>${money(ci.pp)}</b><span>每人</span></div>
-      <div class="hero-meta">出席 ${ci.n} 人${lv ? `・請假 ${lv} 人` : ""}<br>教練費 ${num(f.coach)}＋場地費 ${num(f.venue)}＝${num(f.session)}，${ci.n} 人平分</div>
-      <div class="hero-prog"><span>已付 ${done}／${need} 人</span><div class="hero-bar" role="progressbar" aria-label="已付人數" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div></div>
-      ${extra > 0 ? `<div class="hero-note">每人金額進位到整數，這堂多收 ${money(extra)}，存入班費。</div>` : ""}
-    </div>`;
-  }
 
   // 某人這堂要繳多少（訂場地的人如果課費比場地費多，只要補差額）
   function oweAmount(m, d){
@@ -896,7 +921,110 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
       ${seasonCard()}
       ${ledgerCard(sch)}
+      ${fundCard(sch)}
       ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
+  }
+
+
+  // ---------- 季租日期編輯 ----------
+  const classDay = () => weekday(S.settings.start || SEASON_FROM);
+  function seasonWeeks(x){
+    const wd = classDay(), out = [];
+    let d = x.from; for(let g = 0; weekday(d) !== wd && g < 7; g++) d = shiftDate(d, 1);
+    for(let g = 0; d <= x.to && g < 60; d = shiftDate(d, 7), g++) out.push(d);
+    return out;
+  }
+  const saveSeasons = () => write("settings/seasons", save("settings", "seasons", { list: JSON.parse(JSON.stringify(SEASONS)) }));
+  function toggleSeasonDate(d){
+    const x = seasonOf(d); if(!x) return false;
+    x.dates = x.dates.includes(d) ? x.dates.filter(y => y !== d) : [...x.dates, d].sort();
+    setSeasons(SEASONS); saveSeasons(); return true;
+  }
+  function seasonEditor(){
+    const t = today(), per = S.settings.venueHours * S.settings.venueRate2, num = v => Number(v).toLocaleString("en-US");
+    const last = SEASONS[SEASONS.length - 1];
+    const nf = last ? shiftDate(last.to, 1) : today();
+    const [ny, nm] = nf.split("-").map(Number);
+    const nt = fmtDate(new Date(ny, nm - 1 + 3, 0));
+    const v = (k, fb) => esc(S.draft[k] ?? fb);
+    return `<div class="card">
+      <h2>季租場地日期</h2>
+      <p class="muted">點日期可以切換：<b>深色</b>＝有租場地、要上課；<s>淡色</s>＝取消（場地也退，不收費）。改完記得按「確認儲存」。</p>
+      ${SEASONS.map((x, i) => `<div class="sz-ed">
+        <div class="sz-ed-h"><b>${esc(x.name)}</b><span>${md(x.from)}～${md(x.to)}・${x.dates.length} 堂 × ${num(per)}＝${money(x.dates.length * per)}</span></div>
+        <div class="chips">${seasonWeeks(x).map(d => `<button class="dchip" data-act="sz-date" data-date="${d}" aria-pressed="${x.dates.includes(d)}"${d < t ? " disabled" : ""}>${md(d)}</button>`).join("")}</div>
+        <div class="actions">${S.szDel === i
+          ? `<span class="muted">整季刪掉，這一季的日期都會不見，確定嗎？</span><button class="btn small danger" data-act="sz-del" data-i="${i}">確定刪除</button><button class="btn small" data-act="sz-del-ask" data-i="">先不要</button>`
+          : `<button class="link" data-act="sz-del-ask" data-i="${i}">刪除這一季</button>`}</div>
+      </div>`).join("") || `<p class="muted">還沒有季租，下面新增一季。</p>`}
+      <h3>新增一季</h3>
+      <div class="fields">
+        <label class="field"><span>名稱</span><input id="sz_name" placeholder="例如：2027 年 4～6 月" value="${v("sz_name", `${ny} 年 ${nm}～${nm + 2 > 12 ? nm + 2 - 12 : nm + 2} 月`)}"></label>
+        <label class="field"><span>從哪天</span><input id="sz_from" type="date" value="${v("sz_from", nf)}"></label>
+        <label class="field"><span>到哪天</span><input id="sz_to" type="date" value="${v("sz_to", nt)}"></label>
+      </div>
+      <div class="actions"><button class="btn" data-act="sz-add">新增這一季（先把每週${WD[classDay()]}都選上）</button></div>
+    </div>`;
+  }
+
+  // ---------- 班費收支 ----------
+  function fundInfo(sch){
+    const rows = ledgerRows(sch);
+    const settled = rows.filter(r => !r.left && (r.reimbDone || !r.reimb) && r.coachDone);
+    const extra = settled.reduce((a, r) => a + r.extra, 0);
+    const items = (S.fund.items || []).slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    const inc = items.filter(i => i.type === "in").reduce((a, i) => a + Number(i.amount || 0), 0);
+    const out = items.filter(i => i.type !== "in").reduce((a, i) => a + Number(i.amount || 0), 0);
+    return { extra, settledN: settled.length, inc, out, bal: extra + inc - out, items };
+  }
+  const saveFund = () => write("settings/fund", save("settings", "fund", { items: JSON.parse(JSON.stringify(S.fund.items)) }));
+  function fundCard(sch){
+    const fi = fundInfo(sch), num = v => Number(v).toLocaleString("en-US");
+    if(!S.canWrite && !fi.items.length && !fi.extra) return "";
+    const type = S.draft.fdType || "out", v = (k, fb) => esc(S.draft[k] ?? fb);
+    return `<div class="card">
+      <h2>班費收支</h2>
+      <div class="summary">
+        <div class="stat ok"><b>${money(fi.extra + fi.inc)}</b><span>收入</span></div>
+        <div class="stat bad"><b>${money(fi.out)}</b><span>支出</span></div>
+        <div class="stat"><b>${money(fi.bal)}</b><span>結餘</span></div>
+      </div>
+      <table class="calc fund">
+        <tr><td>進位零頭<small>已結清 ${fi.settledN} 堂，自動計算</small></td><td></td><td class="ok">＋${num(fi.extra)}</td></tr>
+        ${fi.items.map(i => `<tr><td>${esc(i.what)}<small>${md(i.date)}</small></td><td>${S.canWrite ? `<button class="link" data-act="fund-del" data-id="${esc(i.id)}">刪除</button>` : ""}</td><td class="${i.type === "in" ? "ok" : "bad"}">${i.type === "in" ? "＋" : "－"}${num(i.amount)}</td></tr>`).join("")}
+        <tr class="total"><td>結餘</td><td></td><td>${money(fi.bal)}</td></tr>
+      </table>
+      ${S.canWrite ? `<h3>記一筆</h3>
+      <div class="seg two" role="group" aria-label="收入或支出" style="max-width:260px"><button data-act="fd-type" data-v="out" aria-pressed="${type === "out"}">支出</button><button data-act="fd-type" data-v="in" aria-pressed="${type === "in"}">收入</button></div>
+      <div class="fields">
+        <label class="field"><span>日期</span><input id="fd_date" type="date" value="${v("fd_date", today())}"></label>
+        <label class="field"><span>項目</span><input id="fd_what" placeholder="${type === "in" ? "例如：隊友贊助" : "例如：買羽球一打"}" value="${v("fd_what", "")}"></label>
+        <label class="field"><span>金額</span><input id="fd_amt" type="number" inputmode="numeric" min="0" value="${v("fd_amt", "")}"></label>
+      </div>
+      <div class="actions"><button class="btn" data-act="fund-add">記下這一筆</button></div>` : ""}
+      <p class="muted">班費來自每堂進位多收的零頭；買球、雜支等花費記在這裡，大家都看得到。</p>
+    </div>`;
+  }
+
+  // ---------- 出席次數 ----------
+  const attended = (m, d) => classInfo(d).ids.includes(m.id) && ((S.att[d] || {}).records || {})[m.id] !== "absent";
+  const heldDates = ds => ds.filter(d => d <= today() && !["planned", "paused"].includes(statusOf(d)));
+
+  // ---------- 季末結算（複製到 LINE） ----------
+  function seasonReport(){
+    const t = today(), x = SEASONS.find(z => z.to >= t) || SEASONS[SEASONS.length - 1]; if(!x) return "";
+    const sch = schedule(), N = x.dates.length, sc = seasonCalc(x), num = v => Number(v).toLocaleString("en-US");
+    const held = heldDates(x.dates), done = sc.done + sc.paused >= N;
+    const att = players().map(m => ({ m, n: held.filter(d => attended(m, d)).length })).sort((a, b) => b.n - a.n);
+    const owe = players().map(m => ({ m, ds: owedBy(m, sch).filter(d => x.dates.includes(d)) })).filter(o => o.ds.length);
+    const fi = fundInfo(sch);
+    return `🏸【${S.settings.group}】${x.name}${done ? "結算" : "到目前為止"}\n` +
+      `上課 ${held.length} 堂${sc.paused ? `、暫停 ${sc.paused} 堂` : ""}（共 ${N} 堂${done ? "" : `，還有 ${N - sc.done - sc.paused} 堂`}）\n\n` +
+      `📋 出席\n${att.map(a => `${a.m.name} ${a.n} 堂`).join("、")}\n\n` +
+      `💰 課費\n${owe.length ? owe.map(o => `${o.m.name} 還沒付 ${o.ds.length} 堂，${money(o.ds.reduce((a, d) => a + oweAmount(o.m, d), 0))}`).join("\n") : "大家都付清了 👍"}\n\n` +
+      (venuePayerOf() ? `🏟️ 季租場地\n${vpName()}預付 ${num(sc.total)}，已拿回 ${num(sc.back)}${sc.total - sc.back ? `，還差 ${num(sc.total - sc.back)}` : "，已經結清"}\n\n` : "") +
+      `🪙 班費結餘 ${money(fi.bal)}\n` +
+      `謝謝大家${done ? "這一季" : ""}的努力，下次球場見！`;
   }
 
   // 季租總帳：芳玉整季預付場地費，每堂先扣她自己的課費，其餘由吉哥還她
@@ -905,22 +1033,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const x = SEASONS.find(z => z.to >= t);
     if(!x || !venuePayerOf()) return "";
     const vp = esc(vpName()), tr = esc(trName()), num = v => Number(v).toLocaleString("en-US");
-    const N = x.dates.length, total = N * per;
-    let done = 0, paused = 0, repaid = 0, offset = 0, owe = 0;
-    x.dates.forEach(d => {
-      const st = statusOf(d);
-      if(d > t || st === "planned") return;
-      if(st === "paused"){ paused++; return; }
-      done++;
-      const fl = flowOf(d);
-      if(!fl.vp) return;
-      offset += Math.min(fl.vpShare || 0, fl.venue);
-      if(fl.net > 0){ if(fl.reimb) repaid += Number(fl.reimb.amount || fl.net); else owe += fl.net; }
-    });
-    const later = (N - done - paused) * per, back = repaid + offset;
+    const { N, total, done, paused, repaid, offset, owe, later, back } = seasonCalc(x);
     const pct = v => (total ? Math.round(v / total * 1000) / 10 : 0) + "%";
     const started = done + paused > 0;
-    return `<div class="card season">
+    return seasonHtml();
+    function seasonHtml(){ return `<div class="card season">
       <h2>季租總帳<small>${esc(x.name)}</small></h2>
       <div class="sz-top">
         <div><span>${vp}整季預付</span><b>${money(total)}</b><small>${N} 堂 × ${num(per)}</small></div>
@@ -936,7 +1053,25 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr class="total"><td>${vp}還沒拿回</td><td></td><td>${money(total - back)}</td></tr>
       </table>
       <p class="muted">每堂場地費 ${num(per)}：${vp}有來上課就先扣她自己的課費，剩下的由${tr}還她。${started ? "" : "開季後每上完一堂，這裡會自動更新。"}</p>
-    </div>`;
+      ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-season">複製${done + paused >= N ? "季末結算" : "本季目前結算"}，貼到 LINE</button></div>` : ""}
+    </div>`; }
+  }
+  function seasonCalc(x){
+    const t = today(), s = S.settings, per = s.venueHours * s.venueRate2;
+    const N = x.dates.length, total = N * per;
+    let done = 0, paused = 0, repaid = 0, offset = 0, owe = 0;
+    x.dates.forEach(d => {
+      const st = statusOf(d);
+      if(d > t || st === "planned") return;
+      if(st === "paused"){ paused++; return; }
+      done++;
+      const fl = flowOf(d);
+      if(!fl.vp) return;
+      offset += Math.min(fl.vpShare || 0, fl.venue);
+      if(fl.net > 0){ if(fl.reimb) repaid += Number(fl.reimb.amount || fl.net); else owe += fl.net; }
+    });
+    const later = (N - done - paused) * per, back = repaid + offset;
+    return { N, total, per, done, paused, repaid, offset, owe, later, back };
   }
 
   // 吉哥對帳：有點名或收款紀錄、或已經上過的每一堂
@@ -1063,6 +1198,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         </div>
         <div class="actions"><button class="btn primary" data-act="settings-save"${dis()}>存檔</button></div>
       </div>`}
+      ${S.canWrite ? seasonEditor() : ""}
       `;
   }
 
@@ -1070,6 +1206,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const fontBtn = document.getElementById("fontBtn");
   const setBig = on => { document.documentElement.classList.toggle("big", on); fontBtn.setAttribute("aria-pressed", String(on)); fontBtn.firstChild.textContent = on ? "A－" : "A＋"; fontBtn.querySelector("small").textContent = on ? "字變小" : "字放大"; fontBtn.setAttribute("aria-label", on ? "字變小" : "字放大"); };
   try { setBig(localStorage.getItem("ylBig") === "1"); } catch(_){}
+  // 往下捲時把標題列縮小，畫面多看一點內容
+  { const topEl = document.querySelector("header.top"); let mini = false;
+    addEventListener("scroll", () => { const y = scrollY; if(!mini && y > 80){ mini = true; topEl.classList.add("shrunk"); } else if(mini && y < 20){ mini = false; topEl.classList.remove("shrunk"); } }, { passive: true }); }
   fontBtn.addEventListener("click", () => { const on = !document.documentElement.classList.contains("big"); setBig(on); try { localStorage.setItem("ylBig", on ? "1" : "0"); } catch(_){} });
 
   // ---------- events ----------
@@ -1095,6 +1234,38 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     switch(act){
       case "goto": S.tab = b.dataset.tab; render(); break;
       case "me-change": S.meEdit = true; render(); break;
+      case "sz-date": case "sz-cancel": {
+        const d = b.dataset.date, x = seasonOf(d); if(!x) { toast("這天不在任何一季裡"); break; }
+        const was = x.dates.includes(d);
+        toggleSeasonDate(d); render();
+        toast(`記下了：${md(d)} ${was ? "取消（場地也退）" : "恢復上課"}`);
+        break;
+      }
+      case "sz-del-ask": S.szDel = b.dataset.i === "" ? null : +b.dataset.i; render(); break;
+      case "sz-del": { const i = +b.dataset.i, x = SEASONS[i]; S.szDel = null; if(!x) break; SEASONS.splice(i, 1); setSeasons(SEASONS); saveSeasons(); render(); toast(`記下了：刪除「${x.name}」`); break; }
+      case "sz-add": {
+        const name = (document.getElementById("sz_name").value || "").trim(), from = document.getElementById("sz_from").value, to = document.getElementById("sz_to").value;
+        if(!name || !from || !to){ toast("名稱和日期都要填"); break; }
+        if(to < from){ toast("結束日要在開始日之後"); break; }
+        if(SEASONS.some(x => !(to < x.from || from > x.to))){ toast("日期和其他季重疊了"); break; }
+        const x = { name, from, to, dates: [] }; x.dates = seasonWeeks(x);
+        setSeasons([...SEASONS, x]); saveSeasons();
+        ["sz_name", "sz_from", "sz_to"].forEach(k => delete S.draft[k]);
+        render(); toast(`記下了：新增「${name}」${x.dates.length} 堂`);
+        break;
+      }
+      case "fd-type": S.draft.fdType = b.dataset.v; render(); break;
+      case "fund-add": {
+        const date = document.getElementById("fd_date").value || today(), what = document.getElementById("fd_what").value.trim(), amount = Math.round(Number(document.getElementById("fd_amt").value));
+        if(!what){ toast("請填項目"); break; }
+        if(!(amount > 0)){ toast("請填金額"); break; }
+        const type = S.draft.fdType === "in" ? "in" : "out";
+        S.fund.items = [...(S.fund.items || []), { id: "f" + Date.now().toString(36), date, what, amount, type }];
+        ["fd_what", "fd_amt"].forEach(k => delete S.draft[k]);
+        saveFund(); render(); toast(`記下了：${type === "in" ? "收入" : "支出"} ${what} ${money(amount)}`);
+        break;
+      }
+      case "fund-del": { const it = (S.fund.items || []).find(i => i.id === id); if(!it) break; S.fund.items = S.fund.items.filter(i => i.id !== id); saveFund(); render(); toast(`記下了：刪除 ${it.what}`); break; }
       case "me-cancel": S.meEdit = false; render(); break;
       case "date": {
         const dates = schedule().map(i => i.date);
@@ -1217,6 +1388,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       case "export-csv": exportCsv(); break;
       case "copy-class":
       case "copy-owed":
+      case "copy-season":
       case "copy-one": {
         let text;
         const tr = trName(), info = S.settings.payInfo ? `（${S.settings.payInfo}）` : "";
@@ -1232,6 +1404,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             (fl.vp && fl.vpShare && fl.net >= 0 ? `${vpName()} 已經${fees(ci.n, d).season ? "整季預付" : "先付"}場地費（這堂 ${money(fl.venue)}），他的課費直接扣掉，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (fl.vp && !fl.vpShare && fl.net > 0 ? `${vpName()} 已經${fees(ci.n, d).season ? "整季預付" : "先付"}場地費（這堂 ${money(fl.venue)}），${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (unpaid.length ? `還沒轉的：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家的錢都收齊了，謝謝大家！`);
+        } else if(act === "copy-season"){
+          text = seasonReport();
         } else if(act === "copy-one"){
           const m = S.members.find(x => x.id === b.dataset.id); if(!m) break;
           const ds = owedBy(m, schedule()), amts = ds.map(dd => oweAmount(m, dd)), tot = amts.reduce((a, c) => a + c, 0);
@@ -1333,6 +1507,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         NUMS.forEach(k => { next[k] = Number(next[k]); if(!(next[k] >= 0)) next[k] = DEF[k]; });
         S.settings = next;
       }
+      const sv = (d.settings || {}).seasons;
+      setSeasons(sv && Array.isArray(sv.list) ? sv.list : DEF_SEASONS);
+      const fd = (d.settings || {}).fund;
+      S.fund = { items: fd && Array.isArray(fd.items) ? fd.items : [] };
       S.loaded.members = S.loaded.settings = true;
       if(first){ S.date = null; S.payDate = null; }
   }
@@ -1357,9 +1535,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   async function start(){
     S.online = true;
     // 記得這台裝置登入過的管理密碼
-    let saved = ""; try { saved = localStorage.getItem("ylAdminPw") || ""; } catch(_){}
+    let saved = "", remember = false;
+    try { saved = localStorage.getItem("ylAdminPw") || ""; remember = !!saved; if(!saved) saved = sessionStorage.getItem("ylAdminPwS") || ""; } catch(_){}
     if(saved){
-      try { if(await gs("checkPassword", saved)){ S.pw = saved; S.canWrite = true; } } catch(_){}
+      try { if(await gs("checkPassword", saved)){ S.pw = saved; S.canWrite = true; S.remember = remember; } } catch(_){}
     }
     renderAdminBar();
     await load();
@@ -1370,13 +1549,25 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
   // ---------- 管理員登入 ----------
   const adminBar = document.getElementById("adminBar");
+  const IDLE = 2 * 60 * 60 * 1000;   // 沒勾「記住我」時，2 小時沒操作就登出
+  let lastAct = Date.now();
+  ["click", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true }));
+  function logout(msg){
+    staged.clear(); changes = 0; renderSaveBar();
+    S.pw = ""; S.canWrite = false; S.loginOpen = false; S.remember = false;
+    try { localStorage.removeItem("ylAdminPw"); sessionStorage.removeItem("ylAdminPwS"); } catch(_){}
+    renderAdminBar(); render(); toast(msg);
+  }
+  const idleCheck = () => { if(S.canWrite && !S.remember && !staged.size && Date.now() - lastAct > IDLE) logout("太久沒操作，已自動登出"); };
+  setInterval(idleCheck, 60000);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") idleCheck(); });
   function renderAdminBar(){
     if(!S.online){ adminBar.hidden = true; return; }
     adminBar.hidden = false;
     if(S.canWrite){
-      adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定</span><button class="btn small" id="logoutBtn">登出</button></div>`;
+      adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定<small class="muted" style="display:block">${S.remember ? "這支手機會記住登入" : "關掉網頁或 2 小時沒操作會自動登出"}</small></span><button class="btn small" id="logoutBtn">登出</button></div>`;
     } else if(S.loginOpen){
-      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。請按「顯示」確認打的字：數字和英文要用半形，也要注意瀏覽器是不是自動帶入了舊密碼。</span></form>`;
+      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><label class="remember"><input type="checkbox" id="pwRemember">這是我自己的手機，記住我（沒勾的話，關掉網頁或 2 小時沒操作就會登出）</label><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。請按「顯示」確認打的字：數字和英文要用半形，也要注意瀏覽器是不是自動帶入了舊密碼。</span></form>`;
       setTimeout(() => { const el = document.getElementById("pwInput"); if(el) el.focus(); }, 0);
     } else {
       const mg = active().find(m => m.id === S.settings.manager);
@@ -1392,10 +1583,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     }
     else if(e.target.id === "logoutBtn"){
       if(staged.size && !confirm("還有修改沒儲存，登出會放棄這些修改，確定嗎？")) return;
-      staged.clear(); changes = 0; renderSaveBar();
-      S.pw = ""; S.canWrite = false; S.loginOpen = false;
-      try { localStorage.removeItem("ylAdminPw"); } catch(_){}
-      renderAdminBar(); render(); toast("登出了，現在是查看模式");
+      logout("登出了，現在是查看模式");
     }
   });
   adminBar.addEventListener("submit", async e => {
@@ -1406,7 +1594,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     try {
       if(await gs("checkPassword", pw)){
         S.pw = pw; S.canWrite = true; S.loginOpen = false;
-        try { localStorage.setItem("ylAdminPw", pw); } catch(_){}
+        S.remember = !!(document.getElementById("pwRemember") || {}).checked; lastAct = Date.now();
+        try { if(S.remember) localStorage.setItem("ylAdminPw", pw); else { localStorage.removeItem("ylAdminPw"); sessionStorage.setItem("ylAdminPwS", pw); } } catch(_){}
         renderAdminBar(); render(); toast("登入成功，可以開始點名了");
       } else {
         toast("密碼不對，再試一次");
