@@ -163,6 +163,16 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:10px}
 .steps li{line-height:1.55}
 .steps li::marker{font-weight:900;color:var(--accent)}
+.season h2 small{font-size:.8rem;font-weight:700;color:var(--muted);margin-left:8px}
+.sz-top{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sz-top>div{background:var(--c-venue-bg);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.sz-top span,.sz-top small{font-size:.8rem;color:var(--muted)}
+.sz-top b{font-size:1.3rem;font-weight:900;color:var(--c-venue)}
+.sz-bar{display:flex;height:12px;border-radius:999px;background:var(--line);overflow:hidden;margin:12px 0 4px}
+.sz-bar i{display:block;height:100%}
+.sz-bar .ok,.sz-dot.ok{background:var(--ok)} .sz-bar .bad,.sz-dot.bad{background:var(--bad)} .sz-bar .warn,.sz-dot.warn{background:var(--warn)}
+.sz-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--line);margin-right:6px;vertical-align:.05em}
+.sz-calc tr.bad td{color:var(--bad);font-weight:800}
 .fc{display:grid;margin-top:2px}
 .fc-step{display:flex;align-items:center;gap:8px;font-weight:900;font-size:.9rem;color:var(--muted);margin:4px 0 8px}
 .fc-step:not(:first-child){margin-top:18px}
@@ -880,12 +890,53 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div class="who"><b>${esc(r.m.name)}</b>${tagHtml(r.m)}</div>
         <div class="mini">${[["ok", "出席", r.p], ["warn", "請假", r.l], ["bad", "缺席", r.a]].map(([c, k, n]) => `<div class="${n ? c : "zero"}"><b>${n}</b><span>${k}</span></div>`).join("")}</div>
         ${r.owed.length
-          ? `<div class="paybar bad"><b>還沒付 ${r.owed.length} 堂</b><div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div></div>`
+          ? `<div class="paybar bad"><b>還沒付 ${r.owed.length} 堂・${money(r.owed.reduce((a, x) => a + oweAmount(r.m, x), 0))}</b><div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-one" data-id="${r.m.id}">複製私訊</button></div>` : ""}</div>`
           : `<div class="paybar ok"><b>✓ 都付清了</b></div>`}
       </li>`).join("")}</ul>
       <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
+      ${seasonCard()}
       ${ledgerCard(sch)}
       ${paused.length ? `<div class="card"><h2>哪幾週暫停過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${labelDate(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
+  }
+
+  // 季租總帳：芳玉整季預付場地費，每堂先扣她自己的課費，其餘由吉哥還她
+  function seasonCard(){
+    const t = today(), s = S.settings, per = s.venueHours * s.venueRate2;
+    const x = SEASONS.find(z => z.to >= t);
+    if(!x || !venuePayerOf()) return "";
+    const vp = esc(vpName()), tr = esc(trName()), num = v => Number(v).toLocaleString("en-US");
+    const N = x.dates.length, total = N * per;
+    let done = 0, paused = 0, repaid = 0, offset = 0, owe = 0;
+    x.dates.forEach(d => {
+      const st = statusOf(d);
+      if(d > t || st === "planned") return;
+      if(st === "paused"){ paused++; return; }
+      done++;
+      const fl = flowOf(d);
+      if(!fl.vp) return;
+      offset += Math.min(fl.vpShare || 0, fl.venue);
+      if(fl.net > 0){ if(fl.reimb) repaid += Number(fl.reimb.amount || fl.net); else owe += fl.net; }
+    });
+    const later = (N - done - paused) * per, back = repaid + offset;
+    const pct = v => (total ? Math.round(v / total * 1000) / 10 : 0) + "%";
+    const started = done + paused > 0;
+    return `<div class="card season">
+      <h2>季租總帳<small>${esc(x.name)}</small></h2>
+      <div class="sz-top">
+        <div><span>${vp}整季預付</span><b>${money(total)}</b><small>${N} 堂 × ${num(per)}</small></div>
+        <div><span>上課進度</span><b>${started ? `第 ${done + paused}／${N} 堂` : `${md(x.dates[0])} 開始`}</b><small>${started ? `還有 ${N - done - paused} 堂` : `共 ${N} 堂`}</small></div>
+      </div>
+      <div class="sz-bar" role="img" aria-label="已拿回 ${pct(back)}"><i class="ok" style="width:${pct(back)}"></i><i class="bad" style="width:${pct(owe)}"></i><i class="warn" style="width:${pct(paused * per)}"></i></div>
+      <table class="calc sz-calc">
+        <tr><td><i class="sz-dot ok"></i>${tr}已經還</td><td></td><td>${money(repaid)}</td></tr>
+        <tr><td><i class="sz-dot ok"></i>${vp}自己的課費抵掉</td><td></td><td>${money(offset)}</td></tr>
+        ${owe ? `<tr class="bad"><td><i class="sz-dot bad"></i>已上課、${tr}還沒還</td><td></td><td>${money(owe)}</td></tr>` : ""}
+        ${paused ? `<tr><td><i class="sz-dot warn"></i>暫停 ${paused} 堂（場地費另外討論）</td><td></td><td>${money(paused * per)}</td></tr>` : ""}
+        <tr><td><i class="sz-dot"></i>還沒上的課</td><td></td><td>${money(later)}</td></tr>
+        <tr class="total"><td>${vp}還沒拿回</td><td></td><td>${money(total - back)}</td></tr>
+      </table>
+      <p class="muted">每堂場地費 ${num(per)}：${vp}有來上課就先扣她自己的課費，剩下的由${tr}還她。${started ? "" : "開季後每上完一堂，這裡會自動更新。"}</p>
+    </div>`;
   }
 
   // 吉哥對帳：有點名或收款紀錄、或已經上過的每一堂
@@ -1165,7 +1216,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
       case "export-csv": exportCsv(); break;
       case "copy-class":
-      case "copy-owed": {
+      case "copy-owed":
+      case "copy-one": {
         let text;
         const tr = trName(), info = S.settings.payInfo ? `（${S.settings.payInfo}）` : "";
         if(act === "copy-class"){
@@ -1180,6 +1232,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             (fl.vp && fl.vpShare && fl.net >= 0 ? `${vpName()} 已經${fees(ci.n, d).season ? "整季預付" : "先付"}場地費（這堂 ${money(fl.venue)}），他的課費直接扣掉，${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (fl.vp && !fl.vpShare && fl.net > 0 ? `${vpName()} 已經${fees(ci.n, d).season ? "整季預付" : "先付"}場地費（這堂 ${money(fl.venue)}），${tr} 會再匯 ${money(fl.net)} 給他。\n` : "") +
             (unpaid.length ? `還沒轉的：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家的錢都收齊了，謝謝大家！`);
+        } else if(act === "copy-one"){
+          const m = S.members.find(x => x.id === b.dataset.id); if(!m) break;
+          const ds = owedBy(m, schedule()), amts = ds.map(dd => oweAmount(m, dd)), tot = amts.reduce((a, c) => a + c, 0);
+          if(!ds.length){ toast(`${m.name} 都付清了`); break; }
+          text = `${m.name}你好 🏸\n${S.settings.group}${ds.length > 1 ? `這 ${ds.length} 堂` : "這堂"}的課費還沒收到：\n` +
+            ds.map((dd, i) => `・${labelDate(dd)}　${money(amts[i])}`).join("\n") + "\n" +
+            (ds.length > 1 ? `一共 ${money(tot)}，` : "") + (treasurerOf() ? `方便時再轉給${tr}${info}就可以了，` : "") + `謝謝你！`;
         } else {
           const sch = schedule();
           const lines = players().map(m => ({ m, ds: owedBy(m, sch) })).filter(x => x.ds.length)
@@ -1261,10 +1320,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
   // ---------- data（Google 試算表） ----------
   let pendingWrites = 0;
-  async function load(){
-    try {
-      const d = await gs("getData");
-      if(pendingWrites || staged.size) return; // 還有資料在存或還沒儲存，先不要蓋掉畫面
+  const CACHE = "ylCache";
+  const hhmm = t => { const x = new Date(t); return `${x.getMonth() + 1}/${x.getDate()} ${pad(x.getHours())}:${pad(x.getMinutes())}`; };
+  function applyData(d){
       S.members = Object.keys(d.members || {}).map(id => ({ id, ...d.members[id] })).sort(byClassThenStroke);
       S.att = d.attendance || {};
       S.pay = d.payments || {};
@@ -1277,14 +1335,25 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
       S.loaded.members = S.loaded.settings = true;
       if(first){ S.date = null; S.payDate = null; }
+  }
+  async function load(){
+    try {
+      const d = await gs("getData");
+      if(pendingWrites || staged.size) return; // 還有資料在存或還沒儲存，先不要蓋掉畫面
+      applyData(d);
+      try { localStorage.setItem(CACHE, JSON.stringify({ t: Date.now(), d })); } catch(_){}
       if(!S.loginOpen) renderAdminBar();   // 名單載入後補上管理員名字
-      if(noticeEl.textContent.startsWith("暫時連不上")) notice("");
+      if(S.offline){ S.offline = false; notice(""); }
       scheduleRender();
     } catch(e){
+      S.offline = true;
       if(!S.loaded.members){ S.loaded.members = true; render(); }
-      notice("暫時連不上資料，畫面可能不是最新的，檢查一下網路再重新整理。");
+      notice(S.cacheAt ? `收訊不好，先顯示 ${hhmm(S.cacheAt)} 存在手機裡的資料；連上網路會自動更新。` : "暫時連不上資料，畫面可能不是最新的，檢查一下網路再重新整理。");
     }
   }
+  // 先用手機裡上次存的資料把畫面畫出來，不用等網路
+  try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); if(c && c.d){ applyData(c.d); S.cacheAt = c.t; } } catch(_){}
+  if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
   async function start(){
     S.online = true;
     // 記得這台裝置登入過的管理密碼
