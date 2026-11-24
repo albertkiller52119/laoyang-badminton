@@ -959,9 +959,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       ? row("coach", "教練費", `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
       : row("coach", "教練費", "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
     let venue;
-    if(fl.pre) venue = row("venue", `場地費・館方${fl.season ? "（季租）" : ""}`, `${bkName() ? `${bkName()}租借・` : ""}${tr}已匯款・${fl.season ? "季租 2 面" : courts}`, money(fl.venue), `<span class="pill ok">✓ 已匯款</span>`);
-    else if(fl.season){ const c = seasonCalc(fl.sz); venue = row("venue", "場地費・館方（季租）", `${bkName() ? `${bkName()}租借・` : ""}${tr}整季 ${c.N} 堂一次匯 ${num(c.total)}`, money(fl.venue), st(fl.venueDone, "spaid", seasonPaid(fl.sz))); }
-    else venue = row("venue", "場地費・館方", `${bkName() ? `${bkName()}租借・${tr}匯款・` : ""}${courts}`, money(fl.venue), st(fl.venueDone, "venue", fl.venuePaid));
+    if(fl.pre) venue = row("venue", "場地費", `${bkName() ? `${bkName()}租借・` : ""}${tr}已匯款・${fl.season ? "季租 2 面" : courts}`, money(fl.venue), `<span class="pill ok">✓ 已匯款</span>`);
+    else if(fl.season){ const c = seasonCalc(fl.sz); venue = row("venue", "場地費", `${bkName() ? `${bkName()}租借・` : ""}${tr}整季 ${c.N} 堂一次匯 ${num(c.total)}`, money(fl.venue), st(fl.venueDone, "spaid", seasonPaid(fl.sz))); }
+    else venue = row("venue", "場地費", `${bkName() ? `${bkName()}租借・${tr}匯款・` : ""}${courts}`, money(fl.venue), st(fl.venueDone, "venue", fl.venuePaid));
 
     const tail = left > 0 ? `，零頭 ${num(left)} 存班費` : left < 0 ? `，還差 ${num(-left)}` : "，剛好打平";
     const sum = fl.pre ? `收 ${num(got)} ＝ ${fl.coach ? `教練 ${num(fl.coach)} ＋ ` : ""}還${tr}場地費 ${num(fl.venue)}${tail}` : `收 ${num(got)}、付 ${num(out)}${tail}`;
