@@ -282,6 +282,19 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:70
 .me-cell.mute{background:var(--surface-2)} .me-cell.mute b{color:var(--fg);font-size:1.05rem}
 .me .muted{font-size:.82rem}
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.payout{padding:14px 16px}
+.po-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line,#e3e8ee)}
+.po-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#e3e8ee)}
+.po-what{display:flex;flex-direction:column;gap:2px;min-width:0}
+.po-what b{font-size:1.02rem}
+.po-what small{color:var(--muted,#6b7785);font-size:.85rem}
+.po-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--cat)}
+.po-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.po-amt{font-size:1.2rem;font-weight:800;font-variant-numeric:tabular-nums}
+.po-right button.pill{min-height:36px;padding:6px 12px;text-align:center}
+.po-foot{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;font-weight:700}
+.po-foot b{font-size:1.2rem}
+.po-note{color:var(--muted,#6b7785);font-size:.85rem;text-align:right}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 .pill.bad{background:var(--bad-bg);color:var(--bad)}
 .pill.warn{background:var(--warn-bg);color:var(--warn)}
@@ -880,7 +893,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
         <h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
-        ${special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
+        ${fl.tr ? payoutCard(d, fl, paid.length, mustPay.length) : special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
         ${flowCard(d, fl)}`;
     }
     h += rulesBox(ci.n && d >= S.settings.start ? d : null);
@@ -896,6 +909,37 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
 
   // 這堂的錢怎麼走
+  // 教練費、場地費：吉哥付出去的兩筆，一筆一列（金額、算法、付了沒）
+  function payoutCard(d, fl, paidN, mustN){
+    const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練"), s = S.settings;
+    const num = x => Number(x).toLocaleString("en-US"), cf = fees(fl.ci.n, d), pp = fl.ci.pp;
+    const got = fl.ci.n * pp, out = fl.coach + fl.venue, left = got - out;
+    const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 整季已匯" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "整季還沒匯" : "還沒付"; return S.canWrite
+      ? `<button class="pill tap ${ok ? "ok" : "bad"}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${ok ? yes : no + "，點一下記下"}</button>`
+      : `<span class="pill ${ok ? "ok" : "bad"}">${ok ? yes : no}</span>`; };
+    const row = (cat, name, to, how, amt, status) => `<div class="po-row" data-cat="${cat}">
+        <div class="po-what"><b><i class="po-dot"></i>${name}</b><small>付給${to}・${how}</small></div>
+        <div class="po-right"><span class="po-amt">${amt}</span>${status}</div></div>`;
+    const coach = fl.coach > 0
+      ? row("coach", "教練費", cn, `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
+      : row("coach", "教練費", cn, "這堂教練請假", "不用付", `<span class="pill">免付</span>`);
+    let venue;
+    if(fl.season){
+      const c = seasonCalc(fl.sz);
+      venue = row("venue", "場地費（季租）", "館方", `整季 ${c.N} 堂一次匯 ${num(c.total)}，這堂佔 ${num(fl.venue)}`, money(fl.venue), st(fl.venueDone, "spaid", fl.sz.paid));
+    } else {
+      venue = row("venue", "場地費", "館方", `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時 × ${num(cf.two ? s.venueRate2 : s.venueRate)}`, money(fl.venue), st(fl.venueDone, "venue", fl.venuePaid));
+    }
+    const sum = left > 0 ? `收 ${num(got)}、付 ${num(out)}，剩 ${money(left)} 零頭存班費` : left === 0 ? `收 ${num(got)}、付 ${num(out)}，剛好打平` : `收 ${num(got)}、付 ${num(out)}，還差 ${money(-left)}`;
+    return `<h3>教練費、場地費收付</h3>
+      <div class="card payout">
+        <div class="po-head"><div><b>${tr}</b> 收齊課費後付這兩筆</div><span class="pill ${paidN >= mustN ? "ok" : "bad"}">隊友已轉 ${paidN}／${mustN}</span></div>
+        ${coach}${venue}
+        <div class="po-foot"><span>合計付出</span><b>${money(out)}</b></div>
+        <div class="po-note">${sum}</div>
+      </div>`;
+  }
+
   function flowCard(d, fl){
     if(!fl.tr) return "";
     const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練");
