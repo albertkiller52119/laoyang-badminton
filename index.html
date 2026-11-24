@@ -156,6 +156,25 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:10px}
 .steps li{line-height:1.55}
 .steps li::marker{font-weight:900;color:var(--accent)}
+.fc{display:grid;gap:0;margin-top:4px}
+.fc-box{border-radius:12px;padding:12px 14px;text-align:center;display:grid;gap:3px}
+.fc-title{font-weight:900;font-size:1rem}
+.fc-big{font-weight:900;font-size:1.5rem;line-height:1.2}
+.fc-note{font-size:.8rem;color:var(--muted);line-height:1.45}
+.fc-blue{background:var(--accent-soft)} .fc-blue .fc-big{color:var(--accent)}
+.fc-line{border:1.5px solid var(--accent);background:var(--surface)}
+.fc-green{background:var(--ok-bg)} .fc-green .fc-big{color:var(--ok)}
+.fc-orange{background:var(--warn-bg)} .fc-orange .fc-big{color:var(--warn)}
+.fc-arrow{display:grid;justify-items:center;gap:2px;padding:6px 0}
+.fc-ar{font-weight:900;font-size:1.1rem;line-height:1}
+.fc-tag{font-size:.75rem;font-weight:700;padding:2px 10px;border-radius:999px}
+.fc-b .fc-ar,.fc-b .fc-tag{color:var(--accent)} .fc-b .fc-tag{background:var(--accent-soft)}
+.fc-g .fc-ar,.fc-g .fc-tag{color:var(--ok)} .fc-g .fc-tag{background:var(--ok-bg)}
+.fc-o .fc-ar,.fc-o .fc-tag{color:var(--warn)} .fc-o .fc-tag{background:var(--warn-bg)}
+.fc-split{display:grid;gap:10px}
+.fc-split.fc-two{grid-template-columns:1fr 1fr}
+.fc-col{display:grid;grid-template-rows:auto 1fr}
+.fc-hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .big-money{margin:0;font-size:1.8rem;font-weight:900;color:var(--warn);font-variant-numeric:tabular-nums}
 button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:700}
 .sub{font-size:.88rem;color:var(--muted);flex-basis:100%}
@@ -690,25 +709,39 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 這堂的錢怎麼走
   function flowCard(d, fl){
     if(!fl.vp && !fl.tr) return "";
-    const tr = esc(trName()), vp = esc(vpName());
-    const others = fl.ci.ids.filter(id => !fl.vp || id !== fl.vp.id).length;
-    const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
+    const tr = esc(trName()), vp = esc(vpName()), cn = esc(S.settings.coachNick || "教練");
     const num = x => Number(x).toLocaleString("en-US");
-    let steps = [];
-    const lv = leaveCount(d), cf0 = fees(fl.ci.n, d);
-    steps.push(`<li><b>付給${tr}：</b>當天出席 ${fl.ci.n} 人${lv ? `（${lv} 人請假）` : ""}，教練費＋場地費共 ${money(cf0.session)}，每人 <strong>${money(fl.ci.pp)}</strong>${skip.length ? `（${skip.join("和")}自己不用轉）` : ""}。${S.settings.payInfo ? `<br><span class="muted">${esc(S.settings.payInfo)}</span>` : ""}</li>`);
-    if(fl.vp){
-      const cf = fees(fl.ci.n, d);
-      steps.push(cf.season ? `<li><b>場地費：</b>季租 <strong>2 面</strong>場地，每小時 ${money(cf.rate)} × ${S.settings.venueHours} 小時，這堂 <strong>${money(fl.venue)}</strong>，${vp}已整季預付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}</li>` : `<li><b>場地費：</b>當天共 ${fl.ci.n} 人，租用 <strong>${cf.two ? 2 : 1} 面</strong>場地，每小時 ${money(cf.rate)}，租 ${S.settings.venueHours} 小時，共 <strong>${money(fl.venue)}</strong>，請${vp}先付給館方${fl.vpShare ? `，自己的課費 ${money(fl.vpShare)} 直接從中扣除。` : `（${vp}當天請假，不用分攤課費）。`}</li>`);
-      if(fl.net > 0){
-        const done = fl.reimb;
-        steps.push(`<li><b>${tr}付給${vp}：</b>${fl.vpShare ? `場地費扣除${vp}自己的課費後，付還 <strong>${money(fl.net)}</strong>（${num(fl.venue)}－${num(fl.vpShare)}）。` : `${vp}當天請假，場地費全額付還 <strong>${money(fl.net)}</strong>。`}</li>`);
-      } else if(fl.net < 0){
-        steps.push(`<li><b>${vp}補給${tr}：</b>${vp}的課費 ${money(fl.vpShare)} 比場地費多，要再補 <strong>${money(-fl.net)}</strong>。</li>`);
-      }
+    const lv = leaveCount(d), cf = fees(fl.ci.n, d), s = S.settings;
+    const payers = fl.ci.ids.filter(id => !(fl.vp && id === fl.vp.id) && !(fl.tr && id === fl.tr.id)).length;
+    const skip = [fl.vp && fl.ci.ids.includes(fl.vp.id) ? vp : "", fl.tr && fl.ci.ids.includes(fl.tr.id) ? tr : ""].filter(Boolean);
+    const box = (cls, title, big, notes) => `<div class="fc-box ${cls}"><div class="fc-title">${title}</div>${big ? `<div class="fc-big">${big}</div>` : ""}${notes.filter(Boolean).map(n => `<div class="fc-note">${n}</div>`).join("")}</div>`;
+    const arrow = (cls, label) => `<div class="fc-arrow ${cls}"><span class="fc-ar">↓</span><span class="fc-tag">${label}</span></div>`;
+    const top = box("fc-blue", `其他 ${payers} 位隊友`, `每人 ${money(fl.ci.pp)}`, [
+      `共收 ${money(payers * fl.ci.pp)}`,
+      `當天出席 ${fl.ci.n} 人${lv ? `（${lv} 人請假）` : ""}，教練費＋場地費共 ${money(cf.session)}，由出席的人平分`,
+      skip.length ? `${skip.join("和")}的課費不用轉（${fl.tr && fl.ci.ids.includes(fl.tr.id) ? `${tr}的在自己手上` : ""}${skip.length === 2 ? "，" : ""}${fl.vp && fl.ci.ids.includes(fl.vp.id) ? `${vp}的從場地費扣` : ""}）` : "",
+      s.payInfo ? esc(s.payInfo) : "",
+    ]);
+    const mid = box("fc-line", `${tr}｜費用統籌`, "", [`收齊課費後，負責付教練費${fl.vp && fl.net > 0 ? `和${vp}的場地費差額` : ""}`]);
+    const coachBox = box("fc-green", cn, money(fl.coach), [`教練費（${s.coachHours} 小時 × ${money(s.coachRate)}）`]);
+    let vpBox = "", vpArrow = "";
+    if(fl.vp && fl.net > 0){
+      vpArrow = arrow("fc-o", `支付 ${money(fl.net)}`);
+      vpBox = box("fc-orange", vp, money(fl.net), [fl.vpShare ? `場地費差額（${num(fl.venue)}－${num(fl.vpShare)}）` : `${vp}當天請假，場地費全額付還`]);
+    } else if(fl.vp && fl.net < 0){
+      vpArrow = arrow("fc-o", `${vp}補 ${money(-fl.net)}`);
+      vpBox = box("fc-orange", `${vp} → ${tr}`, money(-fl.net), [`${vp}的課費比場地費多，要再補給${tr}`]);
     }
-    steps.push(`<li><b>${tr}付給${esc(S.settings.coachNick || "教練")}：</b>教練費 ${money(fl.coach)}。</li>`);
-    return `<div class="card flow"><h2>錢怎麼走？</h2><ol class="steps">${steps.join("")}</ol>
+    const two = vpBox ? " fc-two" : "";
+    const venue = fl.vp ? `<hr class="fc-hr">` + box("fc-orange fc-soft", `${vp} → 館方`, money(fl.venue), [
+      cf.season ? `季租 2 面場地，已整季預付（每小時 ${money(cf.rate)} × ${s.venueHours} 小時）` : `先代墊 ${cf.two ? 2 : 1} 面場地、${s.venueHours} 小時租金（每小時 ${money(cf.rate)}）`,
+      fl.vpShare ? `其中扣除${vp}自己的課費 ${money(fl.vpShare)}` : `${vp}當天請假，不用分攤課費`,
+    ]) : "";
+    return `<div class="card flow"><h2>錢怎麼走？</h2>
+      <div class="fc">${top}${arrow("fc-b", `轉帳給${tr}`)}${mid}
+        <div class="fc-split${two}"><div class="fc-col">${arrow("fc-g", `支付 ${money(fl.coach)}`)}${coachBox}</div>${vpBox ? `<div class="fc-col">${vpArrow}${vpBox}</div>` : ""}</div>
+        ${venue}
+      </div>
       </div>`;
   }
 
