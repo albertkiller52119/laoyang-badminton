@@ -283,6 +283,11 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:70
 .me .muted{font-size:.82rem}
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .payout{padding:14px 16px}
+.po-step{display:flex;align-items:center;gap:8px;margin:14px 0 2px;color:var(--muted)}
+.po-step b{font-size:.92rem}
+.po-no{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:.8rem;font-weight:800}
+.po-note.left{text-align:left;margin:4px 0 0}
+.payout h2{margin:0}
 .po-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line,#e3e8ee)}
 .po-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#e3e8ee)}
 .po-what{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -370,7 +375,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 </header>
 <div class="wrap"><div id="adminBar" hidden></div><div id="notice" class="notice" hidden></div></div>
 <main id="app" class="wrap">
-  <div class="empty"><b>名單載入中…</b>馬上就好，請稍等一下。</div>
+  <div class="empty"><b>名單載入中…</b>馬上好～</div>
 </main>
 <div id="saveBar" class="savebar" role="region" aria-label="儲存修改" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -542,7 +547,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const prepaidSum = ds => ds.reduce((a, d) => a + fees(8, d).venue, 0);
   // 季租日期清單
   const seasonItems = () => { const t = today(), s = S.settings, per = s.venueHours * s.venueRate2;
-    return SEASONS.filter(x => x.to >= t).map(x => { const ds = liveDates(x); return `<li><strong>${x.name}（${ds.length} 堂）：</strong>${ds.map(d => d < t ? `<s>${md(d)}</s>` : md(d)).join("、")}<br><span class="muted">季租場地費 ${ds.length} 堂 × ${money(per)}＝${money(ds.length * per)}，${seasonPaid(x) ? `${esc(trName())}已先付清` : `由${esc(trName())}匯給館方`}</span></li>`; }).join(""); };
+    return SEASONS.filter(x => x.to >= t).map(x => { const ds = liveDates(x); return `<li><strong>${x.name}（${ds.length} 堂）：</strong>${ds.map(d => d < t ? `<s>${md(d)}</s>` : md(d)).join("、")}<br><span class="muted">場地費 ${ds.length} × ${money(per)}＝${money(ds.length * per)}・${seasonPaid(x) ? `${esc(trName())}已先付` : `由${esc(trName())}匯給館方`}</span></li>`; }).join(""); };
   // 季租開始前照原規則（人數決定 1 面或 2 面）
   const preSeason = () => today() < SEASON_FROM;
   const preItem = extra => { const st = S.settings, ks = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM).sort();
@@ -566,16 +571,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<details class="rules">
     <summary><b>收費小提醒</b></summary>
     <ul class="rule-list">
-      <li><strong>錢怎麼走：</strong>每個人的課費都轉給${tr}，由${tr}付${cn}的教練費和館方的場地費。${tr}自己的那份不用轉。</li>
-      ${(ds => ds.length ? `<li><strong>場地費已先付：</strong>${md(ds[0])}～${md(ds[ds.length - 1])} 共 ${ds.length} 堂的場地費 <strong>${money(prepaidSum(ds))}</strong>（${[["季租前", ds.filter(d => d < SEASON_FROM)], ["季租", ds.filter(d => d >= SEASON_FROM)]].filter(x => x[1].length).map(([k, a]) => `${k} ${a.length} 堂 ${money(prepaidSum(a))}`).join("、")}），${tr}已經先付給館方了。大家每堂課費裡的場地費，就是還給${tr}；${tr}每堂只要再付${cn}教練費。</li>` : "")(prepaidDates())}
-      <li><strong>課費分攤：</strong>每堂教練費＋場地費，由當天出席的人平均分攤；除不盡就進位到整數元，多收的零頭存進班費。</li>
+      <li><strong>錢怎麼走：</strong>課費都轉給${tr}，${tr}再付${cn}和館方。${tr}自己那份不用轉。</li>
+      ${(ds => ds.length ? `<li><strong>場地費已先付：</strong>${md(ds[0])}～${md(ds[ds.length - 1])} 共 ${ds.length} 堂場地費 <strong>${money(prepaidSum(ds))}</strong>（${[["季租前", ds.filter(d => d < SEASON_FROM)], ["季租", ds.filter(d => d >= SEASON_FROM)]].filter(x => x[1].length).map(([k, a]) => `${k} ${a.length} 堂 ${money(prepaidSum(a))}`).join("、")}）${tr}已先付。課費裡的場地費就是還${tr}，每堂只剩教練費要付。</li>` : "")(prepaidDates())}
+      <li><strong>課費分攤：</strong>教練費＋場地費，當天到的人平分；有零頭就進位，多的存班費。</li>
       ${preSeason() || pre ? preItem(pre ? thisOne : "") : ""}
-      <li><strong>季租場地：</strong>自 ${md(SEASON_FROM)} 起季租 2 面場地，由${tr}向館方租借${SEASONS.some(x => seasonPaid(x) && !x.paid) ? "，已先付清" : "並匯款"}。每堂教練費 ${money(coach)}＋場地費 ${money(sv)}（2 面 ${money(s.venueRate2)}／時 × ${s.venueHours} 小時）＝${money(coach + sv)}。${!pre ? thisOne : ""}</li>
+      <li><strong>季租場地：</strong>${md(SEASON_FROM)} 起固定 2 面${SEASONS.some(x => seasonPaid(x) && !x.paid) ? `，${tr}已先付清` : `，由${tr}匯給館方`}。每堂教練 ${money(coach)}＋場地 ${money(sv)}＝${money(coach + sv)}。${!pre ? thisOne : ""}</li>
       ${seasonItems()}
-      <li><strong>人少每人就多：</strong>季租固定 2 面，出席越少、每人越多，例如 ${[8, 7, 6, 5, 4].map(k => `${k} 人 ${money(Math.ceil((coach + sv) / k))}`).join("、")}。請假請盡早在請假紀錄表登記。</li>
-      <li><strong>教練請假：</strong>那天不收教練費，只分攤場地費（例如季租 7 人每人 ${money(Math.ceil(sv / 7))}）。</li>
-      <li><strong>停課：</strong>整班停課的那週不上課、不收費。</li>
-      <li><strong>繳費方式：</strong>課費轉給${tr}，可使用 LINE Pay 或現金。${s.payInfo ? esc(s.payInfo) : ""}</li>
+      <li><strong>人少每人就多：</strong>${[8, 7, 6, 5, 4].map(k => `${k} 人 ${money(Math.ceil((coach + sv) / k))}`).join("、")}。要請假請早點登記。</li>
+      <li><strong>教練請假：</strong>只分攤場地費（7 人每人 ${money(Math.ceil(sv / 7))}）。</li>
+      <li><strong>停課：</strong>不上課、不收費。</li>
+      <li><strong>繳費方式：</strong>轉給${tr}，LINE Pay 或現金都可以。${s.payInfo ? esc(s.payInfo) : ""}</li>
     </ul>
   </details>`;
   };
@@ -761,7 +766,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     document.getElementById("groupName").textContent = s.group || "輪椅羽球點名簿";
     document.getElementById("groupSub").textContent = [s.location && "📍 " + s.location, s.time].filter(Boolean).join("　") || "輪椅羽球點名簿";
     document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
-    if(!S.loaded.members){ app.innerHTML = `<div class="empty"><b>名單載入中…</b>馬上就好，請稍等一下。</div>`; return; }
+    if(!S.loaded.members){ app.innerHTML = `<div class="empty"><b>名單載入中…</b>馬上好～</div>`; return; }
     const sch = schedule();
     if(!S.date) S.date = nextClassDate(sch);
     if(!S.payDate) S.payDate = nextClassDate(sch);
@@ -769,7 +774,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
 
   function noMembers(){
-    return `<div class="empty"><b>還沒有隊友喔</b>先到「隊友」把大家加進來，就能開始點名、記帳了。<div style="margin-top:14px"><button class="btn primary" data-act="goto" data-tab="members">去加隊友</button></div></div>`;
+    return `<div class="empty"><b>還沒有隊友喔</b>先到「隊友」加人，就能點名、記帳。<div style="margin-top:14px"><button class="btn primary" data-act="goto" data-tab="members">去加隊友</button></div></div>`;
   }
 
   // 我的帳單：隊友選一次自己的名字（記在這支手機），打開就看到自己要付多少（只能看）
@@ -779,16 +784,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function meCard(sch){
     const ps = players(); if(!ps.length) return "";
     const id = getMe(), m = ps.find(x => x.id === id);
-    if(!m || S.meEdit) return `<div class="me"><label class="field"><span>我是誰？選一次就會記住，打開就看到自己的帳單</span><select id="mePick"><option value="">－ 選自己的名字 －</option>${ps.slice().sort(byClassThenStroke).map(x => `<option value="${x.id}"${x.id === id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>${m ? `<div><button class="link" data-act="me-cancel">取消</button></div>` : ""}</div>`;
+    if(!m || S.meEdit) return `<div class="me"><label class="field"><span>你是哪位？選一次就記住，之後打開直接看自己的帳單</span><select id="mePick"><option value="">－ 選自己的名字 －</option>${ps.slice().sort(byClassThenStroke).map(x => `<option value="${x.id}"${x.id === id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>${m ? `<div><button class="link" data-act="me-cancel">取消</button></div>` : ""}</div>`;
     const nd = nextClassDate(sch), ci = classInfo(nd), rec = ((S.att[nd] || {}).records || {})[m.id];
     let next;
     if(nd < S.settings.start) next = { cls: "mute", big: "還沒開課", note: `第一堂 ${md(S.settings.start)}` };
     else if(ci.st === "paused") next = { cls: "mute", big: "這週暫停", note: "整班暫停，不用付" };
     else if(rec === "leave") next = { cls: "mute", big: "已請假", note: "這堂不用付" };
-    else if(isTreasurer(m)) next = { cls: "mute", big: "不用轉", note: "你負責收錢，自己的課費在手上" };
+    else if(isTreasurer(m)) next = { cls: "mute", big: "不用轉", note: "你負責收錢，自己那份不用轉" };
     else if(settledByVenue(m, nd)) next = { cls: "mute", big: "不用轉", note: "課費從你墊的場地費扣" };
     else if(paidRec(nd, m.id)) next = { cls: "ok", big: "✓ 已付", note: money(oweAmount(m, nd)) };
-    else next = { cls: "", big: money(oweAmount(m, nd)), note: `照目前 ${ci.n} 人出席算，請假人數變了會跟著調整` };
+    else next = { cls: "", big: money(oweAmount(m, nd)), note: `目前 ${ci.n} 人上課，有人請假會自動重算` };
     const owed = owedBy(m, sch).filter(d => d !== nd), total = owed.reduce((a, d) => a + oweAmount(m, d), 0);
     const pay = owed.length || next.cls === "";
     return `<div class="me">
@@ -821,7 +826,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function classBanner(d){
     const ci = classInfo(d), f = fees(ci.n, d);
     if(offReason(d)) return `<div class="banner mute">這週停課<small>${esc(offReason(d))}，這週不上課、不收費。</small></div>`;
-    if(seasonOff(d) && statusOf(d) === "planned") return `<div class="banner mute">這週沒有上課<small>這天不在季租場地的日期裡，不上課、不收費。</small></div>` + (S.canWrite && d >= today() ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">恢復這堂（有租場地）</button></div>` : "");
+    if(seasonOff(d) && statusOf(d) === "planned") return `<div class="banner mute">這週沒有上課<small>這天沒租場地，不上課、不收費。</small></div>` + (S.canWrite && d >= today() ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">恢復這堂（有租場地）</button></div>` : "");
     const szCancel = S.canWrite && d >= today() && statusOf(d) === "planned" && seasonOf(d) && seasonOf(d).dates.includes(d) ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">這堂取消（場地也退）</button></div>` : "";
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
     if(ci.st === "paused") return `<div class="banner bad">這週團課暫停<small>${esc(leaversOf(d).join("、"))} 請假，這週不上課、不收錢。</small></div>` + modeSwitch("paused");
@@ -866,7 +871,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
-      ${adminHintP("點完記得按畫面下方的「確認儲存」；點錯的話，再點一次同一個按鈕就能取消。")}
+      ${adminHintP("點完記得按下方「確認儲存」；點錯再點一次就取消。")}
       ${leaveBox()}`;
     return h;
   }
@@ -898,11 +903,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
-        <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
-        <h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人（還沒轉的排前面）</h3>
+        <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠＝已付、紅＝還沒付</span></div>
+        <h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
-        ${fl.tr ? payoutCard(d, fl, paid.length, mustPay.length) : special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
-        ${flowCard(d, fl)}`;
+        ${fl.tr ? moneyCard(d, fl, paid.length, mustPay.length) : special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
+        `;
     }
     h += rulesBox(ci.n && d >= S.settings.start ? d : null);
     return h;
@@ -917,80 +922,42 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
 
   // 這堂的錢怎麼走
-  // 教練費、場地費：吉哥付出去的兩筆，一筆一列（金額、算法、付了沒）
-  function payoutCard(d, fl, paidN, mustN){
-    const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練"), s = S.settings;
-    const num = x => Number(x).toLocaleString("en-US"), cf = fees(fl.ci.n, d), pp = fl.ci.pp;
-    const got = fl.ci.n * pp, out = fl.coach + fl.venue, left = got - out;
-    const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 整季已匯" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "整季還沒匯" : "還沒付"; return S.canWrite
-      ? `<button class="pill tap ${ok ? "ok" : "bad"}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${ok ? yes : no + "，點一下記下"}</button>`
-      : `<span class="pill ${ok ? "ok" : "bad"}">${ok ? yes : no}</span>`; };
-    const row = (cat, name, to, how, amt, status) => `<div class="po-row" data-cat="${cat}">
-        <div class="po-what"><b><i class="po-dot"></i>${name}</b><small>付給${to}・${how}</small></div>
-        <div class="po-right"><span class="po-amt">${amt}</span>${status}</div></div>`;
-    const coach = fl.coach > 0
-      ? row("coach", "教練費", cn, `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
-      : row("coach", "教練費", cn, "這堂教練請假", "不用付", `<span class="pill">免付</span>`);
-    let venue;
-    if(fl.season){
-      const c = seasonCalc(fl.sz);
-      venue = fl.pre ? null : row("venue", "場地費（季租）", "館方", `整季 ${c.N} 堂一次匯 ${num(c.total)}，這堂佔 ${num(fl.venue)}`, money(fl.venue), st(fl.venueDone, "spaid", fl.sz.paid));
-    } else if(!fl.pre){
-      venue = row("venue", "場地費", "館方", `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時 × ${num(cf.two ? s.venueRate2 : s.venueRate)}`, money(fl.venue), st(fl.venueDone, "venue", fl.venuePaid));
-    }
-    if(fl.pre){
-      const how = fl.season ? `季租 2 面，這堂 ${num(fl.venue)}` : `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時 × ${num(cf.two ? s.venueRate2 : s.venueRate)}`;
-      venue = `<div class="po-row" data-cat="venue">
-        <div class="po-what"><b><i class="po-dot"></i>場地費${fl.season ? "（季租）" : ""}</b><small>${tr}已先付給館方・${how}</small></div>
-        <div class="po-right"><span class="po-amt">${money(fl.venue)}</span><span class="pill ok">✓ 已先付</span></div></div>`;
-    }
-    const due = fl.pre ? fl.coach : out;
-    const sum = fl.pre ? `收 ${num(got)}：${fl.coach ? `付教練 ${num(fl.coach)}、` : "教練請假不用付、"}還${tr}先墊的場地費 ${num(fl.venue)}${left > 0 ? `，剩 ${num(left)} 零頭存班費` : left < 0 ? `，還差 ${num(-left)}` : ""}` : left > 0 ? `收 ${num(got)}、付 ${num(out)}，剩 ${money(left)} 零頭存班費` : left === 0 ? `收 ${num(got)}、付 ${num(out)}，剛好打平` : `收 ${num(got)}、付 ${num(out)}，還差 ${money(-left)}`;
-    return `<h3>教練費、場地費收付</h3>
-      <div class="card payout">
-        <div class="po-head"><div><b>${tr}</b> ${fl.pre ? (fl.coach > 0 ? "收齊課費後付教練費（場地費已先付）" : "場地費已先付，這堂不用再付錢") : "收齊課費後付這兩筆"}</div><span class="pill ${paidN >= mustN ? "ok" : "bad"}">隊友已轉 ${paidN}／${mustN}</span></div>
-        ${coach}${venue}
-        <div class="po-foot"><span>${fl.pre ? "這堂還要付" : "合計付出"}</span><b>${due ? money(due) : "不用付"}</b></div>
-        <div class="po-note">${sum}</div>
-      </div>`;
-  }
-
-  function flowCard(d, fl){
+  // 這堂錢怎麼走：① 隊友轉給吉哥 ② 吉哥付教練、館方（一張卡看完）
+  function moneyCard(d, fl, paidN, mustN){
     if(!fl.tr) return "";
-    const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練");
-    const num = x => Number(x).toLocaleString("en-US");
-    const lv = leaveCount(d), cf = fees(fl.ci.n, d), s = S.settings, n = fl.ci.n, pp = fl.ci.pp;
+    const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練"), s = S.settings;
+    const num = x => Number(x).toLocaleString("en-US"), cf = fees(fl.ci.n, d), pp = fl.ci.pp, n = fl.ci.n, lv = leaveCount(d);
     const trIn = fl.ci.ids.includes(fl.tr.id);
-    const payers = fl.ci.ids.filter(id => id !== fl.tr.id).length;
-    const got = payers * pp + (trIn ? pp : 0);   // 吉哥手上的錢（含自己那份）
-    const out = fl.coach + fl.venue;              // 吉哥要付出去的錢
-    const left = got - out;
-    const box = (cls, head, big, notes) => `<div class="fc-box ${cls}"><div class="fc-head">${head}</div>${big ? `<div class="fc-big">${big}</div>` : ""}${notes.filter(Boolean).length ? `<ul class="fc-notes">${notes.filter(Boolean).map(t => `<li>${t}</li>`).join("")}</ul>` : ""}</div>`;
-    const arrow = (cls, label) => `<div class="fc-arrow ${cls}"><span class="fc-ar">▼</span><span class="fc-tag">${label}</span></div>`;
-    const step = (k, t) => `<div class="fc-step"><span class="fc-no">${k}</span>${t}</div>`;
+    const got = n * pp, out = fl.coach + fl.venue, left = got - out, due = (fl.coachPaid ? 0 : fl.coach) + (fl.venueDone ? 0 : fl.venue);
+    const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 整季已匯" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "整季還沒匯" : "還沒付"; return S.canWrite
+      ? `<button class="pill tap ${ok ? "ok" : "bad"}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${ok ? yes : no + "・點我記下"}</button>`
+      : `<span class="pill ${ok ? "ok" : "bad"}">${ok ? yes : no}</span>`; };
+    const row = (cat, name, note, amt, status) => `<div class="po-row" data-cat="${cat}">
+        <div class="po-what"><b><i class="po-dot"></i>${name}</b><small>${note}</small></div>
+        <div class="po-right"><span class="po-amt">${amt}</span>${status}</div></div>`;
+    const step = (k, t, right = "") => `<div class="po-step"><span class="po-no">${k}</span><b>${t}</b>${right}</div>`;
+    const courts = `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時 × ${num(cf.two ? s.venueRate2 : s.venueRate)}`;
 
     // ① 隊友轉帳
-    const top = box("fc-blue", `${payers} 位隊友，每人轉給${tr}`, money(pp), [
-      `${n} 人出席${lv ? `、${lv} 人請假` : ""}，共 ${num(cf.session)} 平分`,
-      trIn ? `${tr}自己的那份不用轉` : `${tr}這堂請假`,
-      s.payInfo ? esc(s.payInfo) : "",
-    ]);
-    // ② 吉哥付款
-    const mid = box("fc-line", `${tr}收到`, money(got), [trIn ? `含自己的 ${num(pp)}` : ""]);
-    const coachBox = fl.coach ? box("fc-green", cn, money(fl.coach), [`${s.coachHours} 小時 × ${num(s.coachRate)}`]) : box("fc-green", cn, "不用付", ["這堂教練請假"]);
-    const venueBox = fl.pre ? box("fc-orange", "館方", money(fl.venue), [fl.season ? "季租 2 面" : `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時`, `${tr}已先付，課費收回來還給${tr}`]) : box("fc-orange", "館方", money(fl.venue), fl.season
-      ? [`季租 2 面`, fl.venueDone ? "季租已整季付清" : "季租還沒匯"]
-      : [`${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時`]);
-    const sum = fl.pre ? `<div class="fc-sum">收 ${num(got)}：${fl.coach ? `付教練 ${num(fl.coach)}、` : "教練請假不用付、"}場地費 ${num(fl.venue)} 是還${tr}先墊的${left > 0 ? `，剩 <b>${money(left)}</b> 零頭存班費` : left < 0 ? `，還差 <b>${money(-left)}</b>` : "，剛好打平"}</div>` : `<div class="fc-sum">${left > 0 ? `收 ${num(got)} － 付 ${num(out)}，剩 <b>${money(left)}</b> 零頭存班費` : left === 0 ? `收 ${num(got)}、付 ${num(out)}，剛好打平` : `收 ${num(got)}、付 ${num(out)}，還差 <b>${money(-left)}</b>`}</div>`;
+    const share = row("class", "每人課費", `${n} 人上課${lv ? `、${lv} 人請假` : ""}，${num(cf.session)} 平分${trIn ? `・${tr}自己那份不用轉` : ""}`, money(pp),
+      `<span class="pill ${paidN >= mustN ? "ok" : "bad"}">已轉 ${paidN}／${mustN} 人</span>`);
+    // ② 吉哥付出去
+    const coach = fl.coach > 0
+      ? row("coach", `教練費・${cn}`, `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
+      : row("coach", `教練費・${cn}`, "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
+    let venue;
+    if(fl.pre) venue = row("venue", `場地費・館方${fl.season ? "（季租）" : ""}`, `${tr}已先付・${fl.season ? "季租 2 面" : courts}`, money(fl.venue), `<span class="pill ok">✓ 已先付</span>`);
+    else if(fl.season){ const c = seasonCalc(fl.sz); venue = row("venue", "場地費・館方（季租）", `整季 ${c.N} 堂一次匯 ${num(c.total)}`, money(fl.venue), st(fl.venueDone, "spaid", seasonPaid(fl.sz))); }
+    else venue = row("venue", "場地費・館方", courts, money(fl.venue), st(fl.venueDone, "venue", fl.venuePaid));
 
-    return `<div class="card flow"><h2>錢怎麼走？</h2>
-      <div class="fc">
-        ${step(1, "隊友轉帳")}${top}
-        ${arrow("fc-b", `轉給${tr}`)}
-        ${step(2, `${tr}付款`)}${mid}
-        <div class="fc-split fc-two"><div class="fc-col">${arrow("fc-g", "付教練費")}${coachBox}</div><div class="fc-col">${arrow("fc-o", fl.pre ? "場地費已先付" : fl.season ? "季租場地費" : "付場地費")}${venueBox}</div></div>
-        ${sum}
-      </div>
+    const tail = left > 0 ? `，零頭 ${num(left)} 存班費` : left < 0 ? `，還差 ${num(-left)}` : "，剛好打平";
+    const sum = fl.pre ? `收 ${num(got)} ＝ ${fl.coach ? `教練 ${num(fl.coach)} ＋ ` : ""}還${tr}場地費 ${num(fl.venue)}${tail}` : `收 ${num(got)}、付 ${num(out)}${tail}`;
+    return `<div class="card payout"><h2>這堂錢怎麼走</h2>
+        ${step(1, `隊友轉給${tr}`)}${share}
+        ${s.payInfo ? `<p class="po-note left">${esc(s.payInfo)}</p>` : ""}
+        ${step(2, `${tr}付出去`)}${coach}${venue}
+        <div class="po-foot"><span>${tr}這堂還要付</span><b>${due ? money(due) : out && !(fl.pre && !fl.coach) ? "✓ 都付清了" : "不用付"}</b></div>
+        <div class="po-note">${sum}</div>
       </div>`;
   }
 
@@ -1053,7 +1020,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           ? `<div class="paybar bad"><b>還沒付 ${r.owed.length} 堂・${money(r.owed.reduce((a, x) => a + oweAmount(r.m, x), 0))}</b><div class="chips">${r.owed.map(x => `<span class="pill warn">${md(x)}</span>`).join("")}</div>${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-one" data-id="${r.m.id}">複製私訊</button></div>` : ""}</div>`
           : `<div class="paybar ok"><b>✓ 都付清了</b></div>`}
       </li>`).join("")}</ul>
-      <p class="muted">只算已經上過的課；整班暫停的那週不收費，有人請假時只算沒請假的人。</p>
+      <p class="muted">只算上過的課；暫停不收費，請假的人不用付。</p>
       ${seasonCard()}
       ${ledgerCard(sch)}
       ${fundCard(sch)}
@@ -1084,7 +1051,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const v = (k, fb) => esc(S.draft[k] ?? fb);
     return `<div class="card">
       <h2>季租場地日期</h2>
-      <p class="muted">點日期可以切換：<b>深色</b>＝有租場地、要上課；<s>淡色</s>＝取消（場地也退，不收費）。改完記得按「確認儲存」。</p>
+      <p class="muted">點日期切換：<b>深色</b>＝上課，<s>淡色</s>＝取消（場地退、不收費）。改完記得按「確認儲存」。</p>
       ${SEASONS.map((x, i) => `<div class="sz-ed">
         <div class="sz-ed-h"><b>${esc(x.name)}</b><span>${md(x.from)}～${md(x.to)}・${x.dates.length} 堂 × ${num(per)}＝${money(x.dates.length * per)}</span></div>
         <div class="chips">${seasonWeeks(x).map(d => `<button class="dchip" data-act="sz-date" data-date="${d}" aria-pressed="${x.dates.includes(d)}"${d < t ? " disabled" : ""}>${md(d)}</button>`).join("")}</div>
@@ -1137,7 +1104,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <label class="field"><span>金額</span><input id="fd_amt" type="number" inputmode="numeric" min="0" value="${v("fd_amt", "")}"></label>
       </div>
       <div class="actions"><button class="btn" data-act="fund-add">記下這一筆</button></div>` : ""}
-      <p class="muted">班費來自每堂進位多收的零頭；買球、雜支等花費記在這裡，大家都看得到。</p>
+      <p class="muted">班費來自每堂進位的零頭；買球、雜支記在這裡，大家都看得到。</p>
     </div>`;
   }
 
@@ -1176,7 +1143,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div><span>${auto ? `${tr}已先付館方` : `${tr}匯給館方`}</span><b>${money(total)}</b><small>${N} 堂 × ${num(per)}</small></div>
         <div><span>上課進度</span><b>${started ? `第 ${done + paused}／${N} 堂` : `${md(liveDates(x)[0] || x.from)} 開始`}</b><small>${started ? `還有 ${N - done - paused} 堂` : `共 ${N} 堂`}</small></div>
       </div>
-      <div class="sz-paid ${paid ? "ok" : "bad"}">${auto ? `✓ 季租場地費 ${tr} 已先付清，每堂課費收回來還給${tr}` : paid ? `✓ 季租已匯給館方（${md(paid.date)}・${esc(paid.method || "")}）` : "季租還沒匯給館方"}${S.canWrite && !auto ? ` <button class="link" data-act="spaid-${paid ? "undo" : "save"}" data-date="${liveDates(x)[0] || x.from}">${paid ? "取消紀錄" : "記下已匯款"}</button>` : ""}</div>
+      <div class="sz-paid ${paid ? "ok" : "bad"}">${auto ? `✓ ${tr}已先付清，每堂課費慢慢還給${tr}` : paid ? `✓ 季租已匯給館方（${md(paid.date)}・${esc(paid.method || "")}）` : "季租還沒匯給館方"}${S.canWrite && !auto ? ` <button class="link" data-act="spaid-${paid ? "undo" : "save"}" data-date="${liveDates(x)[0] || x.from}">${paid ? "取消紀錄" : "記下已匯款"}</button>` : ""}</div>
       <div class="sz-bar" role="img" aria-label="已上課 ${pct(back)}"><i class="ok" style="width:${pct(back)}"></i><i class="warn" style="width:${pct(paused * per)}"></i></div>
       <table class="calc sz-calc">
         <tr><td><i class="sz-dot ok"></i>已上 ${done} 堂，課費收回場地費</td><td></td><td>${money(back)}</td></tr>
@@ -1184,7 +1151,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td><i class="sz-dot"></i>還沒上的 ${N - done - paused} 堂</td><td></td><td>${money(later)}</td></tr>
         <tr class="total"><td>季租合計</td><td></td><td>${money(total)}</td></tr>
       </table>
-      <p class="muted">每堂課費裡含場地費 ${num(per)}，上完 ${N} 堂剛好收回季租。停課的週不在季租日期裡，不收費。${started ? "" : "開季後每上完一堂，這裡會自動更新。"}</p>
+      <p class="muted">每堂課費含場地費 ${num(per)}，上完 ${N} 堂剛好收回。${started ? "" : "開季後每上一堂會自動更新。"}</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-season">複製${done + paused >= N ? "季末結算" : "本季目前結算"}，貼到 LINE</button></div>` : ""}
     </div>`;
   }
@@ -1228,8 +1195,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td>還沒收到</td><td></td><td>${money(sum("due") - sum("got"))}</td></tr>
         <tr class="total"><td>班費<small>進位多收的零頭，已結清 ${settled.length} 堂</small></td><td></td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
       </table>
-      <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
-      <p class="muted">「付館方」「付${cn}」是${tr}付出去的錢：✓ 代表已付，紅字是還沒付。${prepaidDates().length ? `${md(prepaidDates()[0])}～${md(prepaidDates().slice(-1)[0])} 的場地費${tr}已先付清，顯示「已先付」。` : "季租的場地費是整季一次匯，到「季租場地」記下。"}班費只算錢都收付完的那幾堂。</p>
+      <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠＝已付、紅＝還沒付</span></div>
+      <p class="muted">「付館方」「付${cn}」是${tr}付出去的錢，✓＝已付、紅字＝還沒付。${prepaidDates().length ? `${md(prepaidDates()[0])}～${md(prepaidDates().slice(-1)[0])} 場地費已先付清。` : "季租場地費整季一次匯，到「季租場地」記下。"}班費只算收付都完成的堂。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="export-csv">匯出 Excel 備份</button></div>` : ""}
     </div>`;
   }
@@ -1295,9 +1262,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           <label class="field"><span>備註（可以不填）</span><input id="newNote" placeholder="例如：運輪放球館" value="${v("newNote")}"${dis()}></label>
         </div>
         <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>
-        <p class="muted">加人或有人停課後，每個人的費用會自動重算。</p>
+        <p class="muted">加人或停課，費用會自動重算。</p>
       </div>`}
-      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">停課的隊友不會出現在點名和繳費名單，也不分攤費用；以前的紀錄都還在。</p><ul class="list pair">${off.map(row).join("")}</ul>` : ""}
+      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">停課的隊友不點名、不分攤，以前的紀錄都留著。</p><ul class="list pair">${off.map(row).join("")}</ul>` : ""}
       ${!S.canWrite ? "" : `<div class="card">
         <h2>課程和費用設定</h2>
         <div class="fields">
@@ -1706,11 +1673,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(S.canWrite){
       adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定<small class="muted" style="display:block">${S.remember ? "這支手機會記住登入" : "關掉網頁或 2 小時沒操作會自動登出"}</small></span><button class="btn small" id="logoutBtn">登出</button></div>`;
     } else if(S.loginOpen){
-      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><label class="remember"><input type="checkbox" id="pwRemember">這是我自己的手機，記住我（沒勾的話，關掉網頁或 2 小時沒操作就會登出）</label><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。請按「顯示」確認打的字：數字和英文要用半形，也要注意瀏覽器是不是自動帶入了舊密碼。</span></form>`;
+      adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><label class="remember"><input type="checkbox" id="pwRemember">這是我的手機，記住我（沒勾：關網頁或 2 小時沒動就登出）</label><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。按「顯示」看一下：英數要半形，也注意瀏覽器有沒有自動帶入舊密碼。</span></form>`;
       setTimeout(() => { const el = document.getElementById("pwInput"); if(el) el.focus(); }, 0);
     } else {
       const mg = active().find(m => m.id === S.settings.manager);
-      adminBar.innerHTML = `<div class="admin"><span>目前是查看模式，大家都能看。${mg ? `資料有問題請找管理員 <b>${esc(mg.name)}</b>。` : ""}</span><button class="btn small" id="loginBtn">管理員登入</button></div>`;
+      adminBar.innerHTML = `<div class="admin"><span>查看模式，大家都能看。${mg ? `資料有問題請找管理員 <b>${esc(mg.name)}</b>。` : ""}</span><button class="btn small" id="loginBtn">管理員登入</button></div>`;
     }
   }
   adminBar.addEventListener("click", e => {
