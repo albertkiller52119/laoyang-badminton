@@ -737,7 +737,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       `${n} 人出席${lv ? `、${lv} 人請假` : ""}，共 ${num(cf.session)} 平分`,
       skipWho.length ? `${skipWho.join("、")}免轉` : "",
       s.payInfo ? esc(s.payInfo) : "",
-    ], `${payers} 人 × ${num(pp)}＝${money(payers * pp)}`);
+    ]);
 
     // ② 財務付款
     const mid = box("fc-line", `${tr}統一付款`, money(got), [
