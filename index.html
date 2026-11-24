@@ -368,7 +368,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 季租 2 面場地：從 SEASON_FROM 起不論人數都是 2 面；季內沒列到的週六不上課
   let SEASON_FROM = "2027-01-02";
   const DEF_SEASONS = [
-    { name:"2027 年 1～3 月", from:"2027-01-01", to:"2027-03-31", dates:["2027-01-02","2027-01-09","2027-01-16","2027-02-13","2027-02-20","2027-02-27","2027-03-06","2027-03-13","2027-03-20","2027-03-27"] },
+    { name:"2027 年 1～3 月", from:"2027-01-01", to:"2027-03-31", dates:["2027-01-02","2027-01-09","2027-01-16","2027-01-30","2027-02-13","2027-02-20","2027-02-27","2027-03-06","2027-03-13","2027-03-20","2027-03-27"] },
   ];
   let SEASONS = [];
   function setSeasons(list){
@@ -380,7 +380,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 季內、但沒租到場地的週六（開季租之前的日期不算）
   // 往前／往後跳一週，遇到季內沒租場地的週六再多跳一週
   const stepWeek = (d, n) => { let x = shiftDate(d, 7 * n); for(let g = 0; seasonOff(x) && g < 20; g++) x = shiftDate(x, 7 * n); return x; };
-  const seasonOff = d => { const x = seasonOf(d); return !!x && d >= SEASON_FROM && !x.dates.includes(d); };
+  // 季租以外、個別指定的日期：取消的週六（含原因），和固定開幾面場地的週六
+  const OFF_DATES = { "2026-12-05": "沒借到場地" };
+  const COURT_FIX = { "2026-12-12": 2, "2026-12-19": 1, "2026-12-26": 2 };
+  const seasonOff = d => { if(OFF_DATES[d]) return true; const x = seasonOf(d); return !!x && d >= SEASON_FROM && !x.dates.includes(d); };
 
   const pad = n => String(n).padStart(2,"0");
   const weekday = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d).getDay(); };
@@ -440,9 +443,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const seasonItems = () => { const t = today(), s = S.settings, per = s.venueHours * s.venueRate2;
     return SEASONS.filter(x => x.to >= t).map(x => `<li><strong>${x.name}（${x.dates.length} 堂）：</strong>${x.dates.map(d => d < t ? `<s>${md(d)}</s>` : md(d)).join("、")}<br><span class="muted">季租場地費 ${x.dates.length} 堂 × ${money(per)}＝${money(x.dates.length * per)}</span></li>`).join(""); };
   // 季租開始前照原規則（人數決定 1 面或 2 面）
-  const preSeason = () => today() < SEASON_FROM && S.settings.bigMin > 0;
-  const preItem = extra => { const s = S.settings, big = s.bigMin;
-    return `<li><strong>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：</strong>照原規則，${big} 人以上使用 2 面（${money(s.venueRate2)}／時）、${big - 1} 人以下使用 1 面（${money(s.venueRate)}／時）。${extra || ""}</li>`; };
+  const preSeason = () => today() < SEASON_FROM;
+  const preItem = extra => { const st = S.settings, ks = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM).sort();
+    const two = ks.filter(d => COURT_FIX[d] === 2), one = ks.filter(d => COURT_FIX[d] === 1), off = Object.keys(OFF_DATES).filter(d => d < SEASON_FROM).sort();
+    const parts = [off.map(d => `${md(d)} ${OFF_DATES[d]}，取消`).join("；"), two.length ? `${two.map(md).join("、")} 開 2 面（${money(st.venueRate2)}／時）` : "", one.length ? `${one.map(md).join("、")} 開 1 面（${money(st.venueRate)}／時）` : ""].filter(Boolean);
+    return `<li><strong>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：</strong>${parts.join("；")}。${extra || ""}</li>`; };
   // 點名頁：請假規則
   const leaveBox = () => `<div class="rules">
     <b>請假規則</b>
@@ -487,7 +492,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function schedule(){
     const start = S.settings.start || today();
     const until = shiftDate(today() > start ? today() : start, 56);
-    const extra = Object.keys(S.att).filter(d => d >= start && Object.keys(S.att[d].records || {}).length);
+    const extra = Object.keys(S.att).filter(d => d >= start && !OFF_DATES[d] && Object.keys(S.att[d].records || {}).length);
     const set = new Set(extra);
     for(let w = start, g = 0; w <= until && g < 600; w = shiftDate(w, 7), g++) if(!seasonOff(w)) set.add(w);
     return [...set].sort().map(d => ({ date: d, status: statusOf(d) }));
@@ -547,7 +552,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const s = S.settings;
     if(n == null) n = players().length;
     const season = !!d && d >= SEASON_FROM;
-    const two = season || twoCourts(n), rate = two ? s.venueRate2 : s.venueRate;
+    const fix = d && COURT_FIX[d];
+    const two = fix ? fix === 2 : (season || twoCourts(n)), rate = two ? s.venueRate2 : s.venueRate;
     const coach = s.coachHours * s.coachRate, venue = s.venueHours * rate;
     const session = coach + venue;
     const pp = n ? Math.ceil(session / n) : 0;
@@ -706,6 +712,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 點名頁的說明橫幅
   function classBanner(d){
     const ci = classInfo(d), f = fees(ci.n, d);
+    if(OFF_DATES[d]) return `<div class="banner mute">這週取消<small>${esc(OFF_DATES[d])}，這週不上課、不收費。</small></div>`;
     if(seasonOff(d) && statusOf(d) === "planned") return `<div class="banner mute">這週沒有上課<small>這天不在季租場地的日期裡，不上課、不收費。</small></div>` + (S.canWrite && d >= today() ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">恢復這堂（有租場地）</button></div>` : "");
     const szCancel = S.canWrite && d >= today() && statusOf(d) === "planned" && seasonOf(d) && seasonOf(d).dates.includes(d) ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">這堂取消（場地也退）</button></div>` : "";
     if(d < S.settings.start) return `<div class="banner mute">還沒開課喔<small>第一堂是 ${md(S.settings.start)}，這天不收費。</small></div>`;
@@ -893,7 +900,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const paused = past.filter(i => i.status === "paused");
     const rows = list.map(m => {
       let p=0, l=0, a=0;
-      Object.keys(S.att).filter(d => d >= S.settings.start).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
+      Object.keys(S.att).filter(d => d >= S.settings.start && !OFF_DATES[d]).forEach(d => { const s = (S.att[d].records||{})[m.id]; if(s==="present")p++; if(s==="leave")l++; if(s==="absent")a++; });
       const owed = m.role === "coach" ? [] : owedBy(m, sch);
       return {m, p, l, a, owed};
     });
