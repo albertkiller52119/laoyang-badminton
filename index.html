@@ -163,7 +163,8 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .fc-box{border-radius:14px;padding:14px 14px 12px;display:grid;gap:6px}
 .fc-head{font-weight:900;font-size:.98rem;text-align:center}
 .fc-big{font-weight:900;font-size:1.7rem;line-height:1.1;text-align:center;letter-spacing:.01em}
-.fc-notes{margin:2px 0 0;padding:0 0 0 1.1em;display:grid;gap:4px;font-size:.84rem;line-height:1.55;color:var(--fg)}
+.fc-notes{margin:0;padding:0;list-style:none;text-align:center;display:grid;gap:2px;font-size:.85rem;line-height:1.5;color:var(--muted)}
+.fc-line .fc-big{color:var(--accent)}
 .fc-notes li::marker{color:var(--muted)}
 .fc-notes b{font-weight:900}
 .fc-chip{justify-self:center;font-size:.8rem;font-weight:800;padding:3px 12px;border-radius:999px;background:var(--surface);color:var(--accent)}
@@ -733,32 +734,32 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
     // ① 隊友轉帳
     const top = box("fc-blue", `${payers} 位隊友，每人轉給${tr}`, money(pp), [
-      `這堂 <b>${n} 人出席</b>${lv ? `、${lv} 人請假` : ""}，教練費 ${num(fl.coach)}＋場地費 ${num(fl.venue)}＝<b>${num(cf.session)}</b>，${n} 人平分${cf.exact ? "" : "（進位到整數）"}。`,
-      skipWho.length ? `${skipWho.join("、")}不用轉：${trIn ? `${tr}的錢本來就在自己手上` : ""}${trIn && vpIn ? "，" : ""}${vpIn ? `${vp}的直接從她墊的場地費扣掉` : ""}。` : "",
+      `${n} 人出席${lv ? `、${lv} 人請假` : ""}，共 ${num(cf.session)} 平分`,
+      skipWho.length ? `${skipWho.join("、")}免轉` : "",
       s.payInfo ? esc(s.payInfo) : "",
     ], `${payers} 人 × ${num(pp)}＝${money(payers * pp)}`);
 
     // ② 財務付款
-    const mid = box("fc-line", `${tr}收齊後統一付款`, "", [
-      `${tr}手上共 <b>${money(got)}</b>${trIn || (fl.vp && fl.net < 0) ? `（大家轉的 ${num(payers * pp)}${trIn ? `＋自己的 ${num(pp)}` : ""}${fl.vp && fl.net < 0 ? `＋${vp}補的 ${num(-fl.net)}` : ""}）` : ""}，拿來付下面${fl.vp && fl.net > 0 ? "兩" : "這"}筆。`,
+    const mid = box("fc-line", `${tr}統一付款`, money(got), [
+      trIn || (fl.vp && fl.net < 0) ? `含${trIn ? `自己的 ${num(pp)}` : ""}${trIn && fl.vp && fl.net < 0 ? "、" : ""}${fl.vp && fl.net < 0 ? `${vp}補的 ${num(-fl.net)}` : ""}` : "",
     ]);
-    const coachBox = box("fc-green", `付給${cn}`, money(fl.coach), [`教練費 ${s.coachHours} 小時 × ${num(s.coachRate)}`]);
+    const coachBox = box("fc-green", cn, money(fl.coach), [`${s.coachHours} 小時 × ${num(s.coachRate)}`]);
     let vpCol = "";
     if(fl.vp && fl.net > 0){
-      vpCol = `<div class="fc-col">${arrow("fc-o", "還場地費")}${box("fc-orange", `還給${vp}`, money(fl.net), [fl.vpShare ? `${vp}墊了 ${num(fl.venue)}，扣掉自己的課費 ${num(fl.vpShare)}，還她 ${num(fl.net)}` : `${vp}這堂請假，墊的場地費全部還她`])}</div>`;
+      vpCol = `<div class="fc-col">${arrow("fc-o", "還場地費")}${box("fc-orange", vp, money(fl.net), [fl.vpShare ? `場地 ${num(fl.venue)} － 課費 ${num(fl.vpShare)}` : `請假，全額還`])}</div>`;
     }
-    const sum = `<div class="fc-sum">${left > 0 ? `收 ${num(got)} － 付 ${num(out)}，剩 <b>${money(left)}</b> 是進位的零頭，存進班費。` : left === 0 ? `收 ${num(got)}、付 ${num(out)}，剛好打平。` : `收 ${num(got)}、付 ${num(out)}，還差 <b>${money(-left)}</b>。`}</div>`;
+    const sum = `<div class="fc-sum">${left > 0 ? `剩 <b>${money(left)}</b> 零頭存班費` : left === 0 ? `收支剛好打平` : `還差 <b>${money(-left)}</b>`}</div>`;
 
     // ③ 場地費
     const venue = fl.vp ? box("fc-orange fc-soft", `${vp}付給館方`, money(fl.venue), [
-      cf.season ? `季租 2 面場地，${vp}已經整季先付清，這堂分到 ${num(fl.venue)}（每小時 ${num(cf.rate)} × ${s.venueHours} 小時）。` : `${vp}先幫大家墊付 ${cf.two ? 2 : 1} 面場地、${s.venueHours} 小時（每小時 ${num(cf.rate)}）。`,
-      vpIn ? `她自己這堂的課費 ${num(fl.vpShare)} 就從這筆扣，不用另外轉。` : `${vp}這堂請假，不用分攤課費。`,
+      cf.season ? `季租 2 面，已整季付清` : `先墊付 ${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時`,
+      vpIn ? `自己的課費從這裡扣` : `這堂請假，不用分攤`,
     ]) : "";
 
     return `<div class="card flow"><h2>錢怎麼走？</h2>
       <div class="fc">
         ${step(1, "隊友轉帳")}${top}
-        ${arrow("fc-b", `合計 ${money(payers * pp)} 轉給${tr}`)}
+        ${arrow("fc-b", `轉給${tr}`)}
         ${step(2, `${tr}付款`)}${mid}
         <div class="fc-split${vpCol ? " fc-two" : ""}"><div class="fc-col">${arrow("fc-g", "付教練費")}${coachBox}</div>${vpCol}</div>
         ${sum}
