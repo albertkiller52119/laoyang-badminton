@@ -34,6 +34,7 @@
   --ok:#1b7445; --ok-bg:#ddf1e5;
   --warn:#8f5500; --warn-bg:#fcefd3;
   --bad:#ad2a22; --bad-bg:#fae2df;
+  --c-coach:#5b45a8; --c-coach-bg:#ebe6f7; --c-venue:#9a5200; --c-venue-bg:#fcebd5;
   --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --radius:12px;
 }
@@ -43,6 +44,7 @@
     --court:#0b3f51; --court-2:#08323f; --court-ink:#f2f8fa; --court-soft:rgba(242,248,250,.7);
     --shuttle:#ffc933; --accent:#5ec3df; --accent-soft:#163947;
     --ok:#6fd49b; --ok-bg:#153626; --warn:#f2bb5c; --warn-bg:#3a2a0d; --bad:#ff8f86; --bad-bg:#3d1714;
+    --c-coach:#b8a4f2; --c-coach-bg:#2a2244; --c-venue:#f2bb5c; --c-venue-bg:#3a2a0d;
     color-scheme:dark;
   }
 }
@@ -51,10 +53,12 @@
   --court:#0b3f51; --court-2:#08323f; --court-ink:#f2f8fa; --court-soft:rgba(242,248,250,.7);
   --shuttle:#ffc933; --accent:#5ec3df; --accent-soft:#163947;
   --ok:#6fd49b; --ok-bg:#153626; --warn:#f2bb5c; --warn-bg:#3a2a0d; --bad:#ff8f86; --bad-bg:#3d1714;
+  --c-coach:#b8a4f2; --c-coach-bg:#2a2244; --c-venue:#f2bb5c; --c-venue-bg:#3a2a0d;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.6}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:1rem;line-height:1.6;font-variant-numeric:tabular-nums}
+html.big{font-size:118.75%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--court)}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 button,input,select{font:inherit;color:inherit}
@@ -65,13 +69,16 @@ button{cursor:pointer}
 .top .wrap{padding-block:14px 0;display:grid;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .mark{width:40px;height:40px;flex:none}
+.fontbtn{margin-left:auto;flex:none;min-width:52px;min-height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:var(--court-ink);font-weight:900;font-size:1rem;line-height:1.1}
+.fontbtn small{display:block;font-size:.65rem;font-weight:700;opacity:.85}
+.fontbtn[aria-pressed="true"]{background:var(--shuttle);border-color:var(--shuttle);color:#11222c}
 .brand h1{margin:0;font-size:1.3rem;font-weight:900;letter-spacing:.02em;line-height:1.2;text-wrap:balance}
 .brand p{margin:0;font-size:.88rem;color:var(--court-soft)}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 .tabs button{background:none;border:0;border-bottom:4px solid transparent;color:var(--court-soft);padding:10px 4px 9px;font-size:1.02rem;font-weight:700;min-height:48px}
 .tabs button[aria-selected="true"]{color:var(--court-ink);border-bottom-color:var(--shuttle)}
 
-main{padding-block:18px 48px;display:grid;gap:16px}
+main{padding-block:18px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
 .admin{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.92rem}
 .admin > span{align-self:center}
 .admin.on{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:700}
@@ -138,12 +145,12 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .stat span{display:block;font-size:.75rem;color:var(--muted);line-height:1.25}
 .stat.ok b{color:var(--ok)} .stat.warn b{color:var(--warn)} .stat.bad b{color:var(--bad)}
 
-.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .actions.stack{flex-direction:column;align-items:flex-end;gap:6px}
 .btn{min-height:48px;padding:0 18px;border-radius:24px;border:1px solid var(--line);background:var(--surface);font-weight:700}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
-.btn.small{min-height:40px;padding:0 14px;font-size:.92rem}
+.btn.small{min-height:44px;padding:0 16px;font-size:.92rem}
 .btn:disabled,.seg button:disabled{opacity:.45;cursor:not-allowed}
 
 .list{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
@@ -170,23 +177,27 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .fc-chip{justify-self:center;font-size:.8rem;font-weight:800;padding:3px 12px;border-radius:999px;background:var(--surface);color:var(--accent)}
 .fc-blue{background:var(--accent-soft)} .fc-blue .fc-big{color:var(--accent)}
 .fc-line{border:1.5px solid var(--accent);background:var(--surface)}
-.fc-green{background:var(--ok-bg)} .fc-green .fc-big{color:var(--ok)}
-.fc-orange{background:var(--warn-bg)} .fc-orange .fc-big{color:var(--warn)}
+.fc-green{background:var(--c-coach-bg)} .fc-green .fc-big{color:var(--c-coach)}
+.fc-orange{background:var(--c-venue-bg)} .fc-orange .fc-big{color:var(--c-venue)}
 .fc-split .fc-big{font-size:1.4rem}
 .fc-split .fc-notes{padding:0;list-style:none;text-align:center;font-size:.8rem}
 .fc-arrow{display:grid;justify-items:center;gap:3px;padding:8px 0}
 .fc-ar{font-size:.8rem;line-height:1}
 .fc-tag{font-size:.76rem;font-weight:800;padding:2px 10px;border-radius:999px}
 .fc-b .fc-ar,.fc-b .fc-tag{color:var(--accent)} .fc-b .fc-tag{background:var(--accent-soft)}
-.fc-g .fc-ar,.fc-g .fc-tag{color:var(--ok)} .fc-g .fc-tag{background:var(--ok-bg)}
-.fc-o .fc-ar,.fc-o .fc-tag{color:var(--warn)} .fc-o .fc-tag{background:var(--warn-bg)}
+.fc-g .fc-ar,.fc-g .fc-tag{color:var(--c-coach)} .fc-g .fc-tag{background:var(--c-coach-bg)}
+.fc-o .fc-ar,.fc-o .fc-tag{color:var(--c-venue)} .fc-o .fc-tag{background:var(--c-venue-bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.legend i,.pill[data-cat]::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:.05em;background:var(--cat)}
+[data-cat="class"]{--cat:var(--accent)} [data-cat="venue"]{--cat:var(--c-venue)} [data-cat="coach"]{--cat:var(--c-coach)}
+.tablewrap th.c-class,.tablewrap th.c-venue,.tablewrap th.c-coach{box-shadow:inset 0 -3px 0 var(--cat)}
 .fc-split{display:grid;gap:10px}
 .fc-split.fc-two{grid-template-columns:1fr 1fr}
 .fc-col{display:grid;grid-template-rows:auto 1fr}
 .fc-sum{margin-top:10px;padding:9px 12px;border:1.5px dashed var(--line);border-radius:10px;font-size:.84rem;text-align:center;color:var(--muted);line-height:1.5}
 .fc-sum b{color:var(--fg)}
 .big-money{margin:0;font-size:1.8rem;font-weight:900;color:var(--warn);font-variant-numeric:tabular-nums}
-button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:700}
+button.pill{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:700;min-height:44px;padding:8px 14px;white-space:normal;text-align:left;line-height:1.3}
 .sub{font-size:.88rem;color:var(--muted);flex-basis:100%}
 
 .seg{display:grid;grid-template-columns:repeat(3,minmax(64px,1fr));gap:6px;flex:1 1 240px;max-width:330px}
@@ -218,9 +229,21 @@ button.pill{border:0;cursor:pointer;font:inherit;font-size:.85rem;font-weight:70
 .paybar.ok{background:var(--ok-bg);color:var(--ok)}
 .paybar.bad{background:var(--bad-bg);color:var(--bad)}
 .paybar .chips{justify-content:center}
-.list.pair .actions{gap:6px}
+.list.pair .actions{gap:8px}
 .list.pair .actions.stack{align-items:flex-start}
 
+.me{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:var(--radius);padding:12px 14px;display:grid;gap:10px}
+.me-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.me-hi{font-weight:900;font-size:1.05rem}
+.me-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.me-cell{border-radius:10px;padding:10px 8px;background:var(--accent-soft);display:grid;gap:2px;text-align:center;align-content:start}
+.me-cell span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.me-cell b{font-size:1.4rem;font-weight:900;color:var(--accent);line-height:1.25}
+.me-cell small{font-size:.76rem;color:var(--muted);line-height:1.4}
+.me-cell.ok{background:var(--ok-bg)} .me-cell.ok b{color:var(--ok)}
+.me-cell.bad{background:var(--bad-bg)} .me-cell.bad b{color:var(--bad)}
+.me-cell.mute{background:var(--surface-2)} .me-cell.mute b{color:var(--fg);font-size:1.05rem}
+.me .muted{font-size:.82rem}
 .pill{display:inline-block;font-size:.85rem;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 .pill.bad{background:var(--bad-bg);color:var(--bad)}
@@ -286,6 +309,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <h1 id="groupName">老楊輪羽班</h1>
         <p id="groupSub">輪椅羽球點名簿</p>
       </div>
+      <button id="fontBtn" class="fontbtn" type="button" aria-pressed="false" aria-label="字放大">A＋<small>字放大</small></button>
     </div>
     <nav class="tabs" role="tablist" aria-label="功能">
       <button role="tab" data-tab="checkin" aria-selected="true">點名</button>
@@ -597,6 +621,35 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="empty"><b>還沒有隊友喔</b>先到「隊友」把大家加進來，就能開始點名、記帳了。<div style="margin-top:14px"><button class="btn primary" data-act="goto" data-tab="members">去加隊友</button></div></div>`;
   }
 
+  // 我的帳單：隊友選一次自己的名字（記在這支手機），打開就看到自己要付多少（只能看）
+  const ME_KEY = "ylMe";
+  const getMe = () => { try { return localStorage.getItem(ME_KEY) || ""; } catch(_){ return ""; } };
+  const setMe = v => { try { v ? localStorage.setItem(ME_KEY, v) : localStorage.removeItem(ME_KEY); } catch(_){} };
+  function meCard(sch){
+    const ps = players(); if(!ps.length) return "";
+    const id = getMe(), m = ps.find(x => x.id === id);
+    if(!m || S.meEdit) return `<div class="me"><label class="field"><span>我是誰？選一次就會記住，打開就看到自己的帳單</span><select id="mePick"><option value="">－ 選自己的名字 －</option>${ps.slice().sort(byClassThenStroke).map(x => `<option value="${x.id}"${x.id === id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>${m ? `<div><button class="link" data-act="me-cancel">取消</button></div>` : ""}</div>`;
+    const nd = nextClassDate(sch), ci = classInfo(nd), rec = ((S.att[nd] || {}).records || {})[m.id];
+    let next;
+    if(nd < S.settings.start) next = { cls: "mute", big: "還沒開課", note: `第一堂 ${md(S.settings.start)}` };
+    else if(ci.st === "paused") next = { cls: "mute", big: "這週暫停", note: "整班暫停，不用付" };
+    else if(rec === "leave") next = { cls: "mute", big: "已請假", note: "這堂不用付" };
+    else if(isTreasurer(m)) next = { cls: "mute", big: "不用轉", note: "你負責收錢，自己的課費在手上" };
+    else if(settledByVenue(m, nd)) next = { cls: "mute", big: "不用轉", note: "課費從你墊的場地費扣" };
+    else if(paidRec(nd, m.id)) next = { cls: "ok", big: "✓ 已付", note: money(oweAmount(m, nd)) };
+    else next = { cls: "", big: money(oweAmount(m, nd)), note: `照目前 ${ci.n} 人出席算，請假人數變了會跟著調整` };
+    const owed = owedBy(m, sch).filter(d => d !== nd), total = owed.reduce((a, d) => a + oweAmount(m, d), 0);
+    const pay = owed.length || next.cls === "";
+    return `<div class="me">
+      <div class="me-top"><span class="me-hi">${esc(m.name)} 的帳單</span><button class="link" data-act="me-change">不是我</button></div>
+      <div class="me-grid">
+        <div class="me-cell ${next.cls}"><span>下一堂 ${md(nd)}</span><b>${next.big}</b><small>${next.note}</small></div>
+        <div class="me-cell ${owed.length ? "bad" : "ok"}"><span>之前的課</span><b>${owed.length ? money(total) : "✓ 付清"}</b><small>${owed.length ? `還沒付 ${owed.length} 堂：${owed.map(md).join("、")}` : "沒有欠款"}</small></div>
+      </div>
+      ${pay ? `<p class="muted">課費轉給${esc(trName())}，可用 LINE Pay 或現金。${S.settings.payInfo ? esc(S.settings.payInfo) : ""}</p>` : ""}
+    </div>`;
+  }
+
   // 有人請假時：整班暫停，或其他人照上
   const modeSwitch = cur => !S.canWrite ? "" : `<div class="field"><span>有人請假，這週要怎麼辦？</span>
     <div class="seg two" role="group" aria-label="有人請假時這週怎麼辦">
@@ -630,6 +683,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     list.forEach(m => { if(c[rec[m.id]] !== undefined) c[rec[m.id]]++; });
     const unmarked = list.length - c.present - c.leave - c.absent;
     let h = `
+      ${meCard(sch)}
       <div class="bar">
         <button class="nav" data-act="date" data-n="-1" aria-label="上一次上課"${S.date <= S.settings.start ? " disabled" : ""}>‹</button>
         <label class="picker"><span>${labelDate(S.date)}</span><input type="date" id="datePick" value="${S.date}" min="${S.settings.start}" aria-label="選擇上課日期"></label>
@@ -665,6 +719,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const key = payKey(d);
     const rec = (S.pay[key] && S.pay[key].records) || {};
     let h = `
+      ${meCard(sch)}
       <div class="bar">
         <button class="nav" data-act="paydate" data-n="-1" aria-label="上一堂"${d <= S.settings.start ? " disabled" : ""}>‹</button>
         <label class="picker"><span>${labelDate(d)}</span><input type="date" id="payDatePick" value="${d}" min="${S.settings.start}" aria-label="選擇哪一堂"></label>
@@ -686,6 +741,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       h += `
         ${heroCard(d, ci, mustPay.length, paid.length)}
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">大家的錢都收齊了，辛苦了！</div>`}
+        <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
         <h3>隊友課費（還沒轉的排前面）</h3>
         ${payList(key, listed, ci.pp, d, "pair")}
         ${special.length ? `<h3>教練費、場地費收付</h3>${payList(key, special, ci.pp, d, "pair")}` : ""}
@@ -773,9 +829,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const payLabel = key => `${md(key.slice(6))} `;
 
   // 收付狀態標籤：管理員點一下可記下／取消
-  const flowPill = (ok, text, kind, d) => S.canWrite
-    ? `<button class="pill ${ok ? "ok" : "bad"} tap" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${text}</button>`
-    : `<span class="pill ${ok ? "ok" : "bad"}">${text}</span>`;
+  const flowPill = (ok, text, kind, d) => { const cat = kind === "coach" ? "coach" : "venue"; return S.canWrite
+    ? `<button class="pill ${ok ? "ok" : "bad"} tap" data-cat="${cat}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${text}</button>`
+    : `<span class="pill ${ok ? "ok" : "bad"}" data-cat="${cat}">${text}</span>`; };
 
   // 一份繳費名單
   function payList(key, list, defAmt, d, cls = ""){
@@ -790,8 +846,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.vp && fl.net > 0 ? pill(!!fl.reimb, esc(vpName()), "reimb") : ""}${pill(!!fl.coachPaid, cn, "coach")}</div>`; })()}</li>`;
       }
       const right = `<div class="actions">${S.canWrite
-        ? `<button class="pill ${r ? "ok" : "bad"}" data-act="${r ? "pay-del" : "pay-save"}" data-key="${key}" data-id="${m.id}" data-amt="${amt}">${r ? "✓ 已付" : "還沒付"}</button>`
-        : `<span class="pill ${r ? "ok" : "bad"}">${r ? "✓ 已付" : "還沒付"}</span>`}</div>`;
+        ? `<button class="pill ${r ? "ok" : "bad"}" data-cat="class" data-act="${r ? "pay-del" : "pay-save"}" data-key="${key}" data-id="${m.id}" data-amt="${amt}">${r ? "✓ 已付" : "還沒付"}</button>`
+        : `<span class="pill ${r ? "ok" : "bad"}" data-cat="class">${r ? "✓ 已付" : "還沒付"}</span>`}</div>`;
       return `<li class="row">
         <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}
 </div>
@@ -855,7 +911,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="card">
       <h2>財務對帳</h2>
       <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>日期</th><th class="num">隊友繳費</th><th class="num">付${vp}</th><th class="num">付${cn}</th></tr></thead>
+        <thead><tr><th>日期</th><th class="num c-class" data-cat="class">隊友繳費</th><th class="num c-venue" data-cat="venue">付${vp}</th><th class="num c-coach" data-cat="coach">付${cn}</th></tr></thead>
         <tbody>${rows.map(r => `<tr><td><b>${md(r.d)}</b><small>${r.n} 人</small></td><td class="num ${r.left ? "bad" : "ok"}">${r.left ? num(r.got) : "✓ " + num(r.got)}<small>${r.left ? `差 ${r.left} 人` : "收齊"}</small></td>${r.reimb ? ok(r.reimbDone, num(r.reimb)) : `<td class="num muted">—</td>`}${ok(r.coachDone, num(r.coach))}</tr>`).join("")}</tbody>
       </table></div>
       <table class="calc">
@@ -864,6 +920,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td>還沒收到</td><td></td><td>${money(sum("due") - sum("got"))}</td></tr>
         <tr class="total"><td>班費<small>進位多收的零頭，已結清 ${settled.length} 堂</small></td><td></td><td>${money(settled.reduce((a, r) => a + r.extra, 0))}</td></tr>
       </table>
+      <div class="legend"><span data-cat="class"><i></i>課費</span><span data-cat="venue"><i></i>場地費</span><span data-cat="coach"><i></i>教練費</span><span>｜綠色＝已付、紅色＝還沒付</span></div>
       <p class="muted">「付${vp}」「付${cn}」欄：✓ 代表已付，紅字是還沒付的金額。班費只算錢都收付完的那幾堂。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="export-csv">匯出 Excel 備份</button></div>` : ""}
     </div>`;
@@ -958,6 +1015,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       `;
   }
 
+  // 字放大（記在這支手機）
+  const fontBtn = document.getElementById("fontBtn");
+  const setBig = on => { document.documentElement.classList.toggle("big", on); fontBtn.setAttribute("aria-pressed", String(on)); fontBtn.firstChild.textContent = on ? "A－" : "A＋"; fontBtn.querySelector("small").textContent = on ? "字變小" : "字放大"; fontBtn.setAttribute("aria-label", on ? "字變小" : "字放大"); };
+  try { setBig(localStorage.getItem("ylBig") === "1"); } catch(_){}
+  fontBtn.addEventListener("click", () => { const on = !document.documentElement.classList.contains("big"); setBig(on); try { localStorage.setItem("ylBig", on ? "1" : "0"); } catch(_){} });
+
   // ---------- events ----------
   document.querySelector(".tabs").addEventListener("click", e => {
     const b = e.target.closest("[data-tab]"); if(!b) return;
@@ -968,6 +1031,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const t = e.target;
     // 開課日（12/5）之前的日期不列，選到更早就跳回開課日
     const clamp = v => v < S.settings.start ? S.settings.start : v;
+    if(t.id === "mePick"){ setMe(t.value); S.meEdit = false; render(); return; }
     if(t.id === "datePick" && t.value){ S.date = clamp(t.value); render(); }
     else if(t.id === "payDatePick" && t.value){ S.payDate = clamp(t.value); S.payOpen = S.payConfirm = null; render(); }
     else if(t.id) S.draft[t.id] = t.value;
@@ -979,6 +1043,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
     switch(act){
       case "goto": S.tab = b.dataset.tab; render(); break;
+      case "me-change": S.meEdit = true; render(); break;
+      case "me-cancel": S.meEdit = false; render(); break;
       case "date": {
         const dates = schedule().map(i => i.date);
         const n = +b.dataset.n, i = dates.indexOf(S.date);
