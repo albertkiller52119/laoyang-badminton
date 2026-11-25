@@ -1057,7 +1057,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const tail = left > 0 ? `，零頭 ${num(left)} 存班費` : left < 0 ? `，還差 ${num(-left)}` : "，剛好打平";
     const sum = fl.pre ? `收 ${num(got)} ＝ ${fl.coach ? `教練 ${num(fl.coach)} ＋ ` : ""}還${tr}場地費 ${num(fl.venue)}${tail}` : `收 ${num(got)}、付 ${num(out)}${tail}`;
     return `<div class="card payout"><h2>這堂錢怎麼走</h2>
-        ${step(1, `隊友付給${tr}`)}${share}
+        ${step(1, `付給${tr}`)}${share}
         ${step(2, `${tr}付出去`)}${coach}${venue}
         ${S.canWrite ? `<div class="po-foot"><span>${tr}這堂還要付</span><b>${due ? money(due) : out && !(fl.pre && !fl.coach) ? "✓ 都已付" : "不用付"}</b></div>
         <div class="po-note">${sum}</div>` : ""}
