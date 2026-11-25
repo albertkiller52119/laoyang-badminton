@@ -324,6 +324,17 @@ body{font-variant-numeric:tabular-nums}
 .po-what b .po-no{margin-right:8px;vertical-align:.1em}
 .po-what b:has(.po-no) + small{padding-left:30px}
 .po-gap{height:6px}
+.po-foot{gap:10px;flex-wrap:wrap}
+.po-foot .muted{font-weight:500;font-size:.85rem}
+details.sec>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary h2{margin:0}
+details.sec>summary small{color:var(--muted);font-size:.85rem}
+details.sec>summary::after{content:"▾";margin-left:auto;color:var(--muted)}
+details.sec[open]>summary::after{content:"▴"}
+.sec-b{margin-top:12px;display:grid;gap:10px}
+.sec-b .card{border:0;padding:0;margin:8px 0 0;background:none;box-shadow:none}
+.sec-b .card h2{font-size:1.02rem}
 .po-list{border-bottom:1px solid var(--line,#e3e8ee);padding:8px 0}
 .po-list>summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.9rem}
 .po-list .list{margin-top:8px}
@@ -646,7 +657,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <li><strong>事先請假：</strong>最晚請提前一週告知，當堂費用由實際出席的人平均分攤。若當天上課人數少於 4 人，則由大家討論是否停課。</li>
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤當堂課程費用。</li>
     </ul>
-    ${S.canWrite && S.sheet ? `<p class="muted">想記已繳，也可以在請假紀錄表的名字格填「已付」。${sheetUnknown().length ? `<br><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）` : ""}</p>` : ""}
+    ${S.canWrite && sheetUnknown().length ? `<p class="muted"><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）</p>` : ""}
   </div>`;
   // 管理員：場租合約重點
   const contractBox = () => `<h3>場租合約重點</h3>
@@ -856,11 +867,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     }
     render();
   }
-  app.addEventListener("focusout", () => { if(pendingRender){ setTimeout(()=>{ if(pendingRender){ pendingRender=false; render(); } }, 0); } });
+  app.addEventListener("focusout", () => { if(pendingRender){ setTimeout(()=>{ const a = document.activeElement; if(a && app.contains(a) && (a.tagName === "INPUT" || a.tagName === "SELECT") && a.type !== "date") return; if(pendingRender){ pendingRender=false; render(); } }, 0); } });
 
   // 記住哪些下拉選項是打開的
-  const openDetails = new Set();
-  app.addEventListener("toggle", e => { const k = e.target.dataset && e.target.dataset.k; if(k) e.target.open ? openDetails.add(k) : openDetails.delete(k); }, true);
+  const openDetails = new Set(["members:team"]);
+  app.addEventListener("toggle", e => { const el = e.target, k = el.dataset && el.dataset.k; if(!k) return; el.open ? openDetails.add(k) : openDetails.delete(k);
+    if(el.open && el.classList.contains("sec")) app.querySelectorAll("details.sec[open]").forEach(o => { if(o !== el) o.open = false; }); }, true);
   function render(){
     const s = S.settings;
     document.getElementById("groupName").textContent = s.group || "輪椅羽球點名簿";
@@ -881,7 +893,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 重畫後，把剛才打開的下拉選項照樣打開（自動更新不會把它收起來）
     const seen = {};
     app.querySelectorAll("details").forEach(el => {
-      const c = el.className, k = `${S.tab}:${c}:${seen[c] = (seen[c] || 0) + 1}`;
+      const c = el.className, k = el.dataset.key ? `${S.tab}:${el.dataset.key}` : `${S.tab}:${c}:${seen[c] = (seen[c] || 0) + 1}`;
       el.dataset.k = k;
       if(openDetails.has(k)) el.open = true;
     });
@@ -959,7 +971,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const rec = (S.att[d] && S.att[d].records) || {}, on = active().filter(m => ci.ids.includes(m.id));
     const nm = a => a.map(m => esc(m.name)).join("、");
     const goL = on.filter(m => rec[m.id] !== "absent"), leaveL = active().filter(m => rec[m.id] === "leave"), absentL = on.filter(m => rec[m.id] === "absent");
-    const who = where === "checkin" && !S.canWrite ? `<div class="nx-who">
+    const who = where === "checkin" && !(S.canWrite && d <= t) ? `<div class="nx-who">
         <p><b>${d <= t ? "出席" : "上課"}</b>${nm(goL) || "－"}</p>
         ${leaveL.length ? `<p><b>請假</b>${nm(leaveL)}</p>` : ""}
         ${absentL.length ? `<p><b>缺席</b>${nm(absentL)}</p>` : ""}
@@ -991,16 +1003,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 `;
     if(!list.length) return h + noMembers();
     h += `
-      ${!S.canWrite ? leaveBox() : `<ul class="list pair">` +
+      ${!S.canWrite || S.date > today() ? adminHintP("上課當天才會出現點名按鈕；請假會照請假紀錄表自動更新。") + leaveBox() : `<ul class="list pair">` +
       list.map(m => {
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
-          <div class="seg" style="--n:${st === "single" ? 2 : 3}" role="group" aria-label="${esc(m.name)} 的出席狀態">
-            ${(st === "single" ? ["present","leave"] : ["present","leave","absent"]).map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
+          <div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
+            ${["present","leave","absent"].map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
           </div></li>`;
       }).join("") + `</ul>
-      <p class="muted">沒請假就算出席，只要標「缺席」的人。點完記得按下方「確認儲存」；點錯再點一次就取消。</p>
+      <p class="muted">沒請假就算出席，只標缺席的人；點完按下方「確認儲存」。</p>
       ${leaveBox()}`}`;
     return h;
   }
@@ -1026,9 +1038,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const listed = [...unpaid, ...paid, ...who.filter(m => !mustPay.includes(m) && rec[m.id])];
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
-        ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">✓ 大家都已付，辛苦了！</div>`}
+        ${unpaid.length ? "" : `<div class="banner ok">✓ 大家都已付，辛苦了！</div>`}
         ${fl.tr ? moneyCard(d, fl, paid.length, mustPay.length, S.canWrite ? "" : payList(key, listed, ci.pp, d, "pair")) : ""}
-        ${S.canWrite ? `<h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人</h3>${payList(key, listed, ci.pp, d, "pair")}`
+        ${S.canWrite ? `<h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人</h3>
+        <p class="muted">點右邊按鈕記已付，再點一次取消；也可以在請假紀錄表的名字格填「已付」。</p>${payList(key, listed, ci.pp, d, "pair")}${unpaid.length ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : ""}`
           : fl.tr ? "" : `<details class="fold"><summary>大家繳費狀況（已付 ${paid.length}／${mustPay.length} 人）</summary>${payList(key, listed, ci.pp, d, "pair")}</details>`}
         `;
     }
@@ -1079,8 +1092,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="card payout"><h2>這堂錢怎麼走</h2>
         <div class="po-gap"></div>${share}${listHtml ? `<details class="po-list"><summary>看誰付了</summary>${listHtml}</details>` : ""}
         ${step(2, `${tr}付出去`)}${coach}${venue}
-        ${S.canWrite ? `<div class="po-foot"><span>${tr}這堂還要付</span><b>${due ? money(due) : out && !(fl.pre && !fl.coach) ? "✓ 都已付" : "不用付"}</b></div>
-        <div class="po-note">${sum}</div>` : ""}
+        ${S.canWrite ? `<div class="po-foot"><b>${due ? `還要付${[!fl.coachPaid && fl.coach ? `教練 ${money(fl.coach)}` : "", !fl.venueDone && fl.venue ? `場地 ${money(fl.venue)}` : ""].filter(Boolean).join("、")}` : out ? "✓ 都付清了" : "這堂不用付"}</b><span class="muted">${left > 0 ? `零頭 ${num(left)} 存班費` : left < 0 ? `還差 ${num(-left)}` : "收支剛好打平"}</span></div>` : ""}
       </div>`;
   }
 
@@ -1100,15 +1112,15 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const r = rec[m.id], tok = key + "|" + m.id;
       const amt = d ? oweAmount(m, d) : defAmt;
       if(!r && d && isTreasurer(m)){
-        return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${S.canWrite ? tagHtml(m) : ""}</div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.season ? flowPill(fl.venueDone, fl.venueDone ? "✓ 季租已付館方" : "季租還沒付館方", "spaid", d) : pill(fl.venueDone, "館方", "venue")}${fl.coach > 0 ? pill(!!fl.coachPaid, cn, "coach") : `<span class="pill">教練請假，不用付</span>`}</div>`; })()}</li>`;
+        return `<li class="row"><div class="who"><b>${esc(m.name)}</b></div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.season ? flowPill(fl.venueDone, fl.venueDone ? "✓ 季租已付館方" : "季租還沒付館方", "spaid", d) : pill(fl.venueDone, "館方", "venue")}${fl.coach > 0 ? pill(!!fl.coachPaid, cn, "coach") : `<span class="pill">教練請假，不用付</span>`}</div>`; })()}</li>`;
       }
       const wait = !r && d && d > today();
-      if(r && r.sheet) return `<li class="row"><div class="who"><b>${esc(m.name)}</b>${S.canWrite ? tagHtml(m) : ""}</div><div class="actions"><span class="pill ok" title="試算表上填了已付">✓ 已付（試算表）</span></div></li>`;
+      if(r && r.sheet) return `<li class="row"><div class="who"><b>${esc(m.name)}</b></div><div class="actions"><span class="pill ok" title="試算表上填了已付">✓ 已付（試算表）</span></div></li>`;
       const right = `<div class="actions">${S.canWrite
         ? `<button class="pill ${r ? "ok" : wait ? "wait" : "bad"}" data-act="${r ? "pay-del" : "pay-save"}" data-key="${key}" data-id="${m.id}" data-amt="${amt}">${r ? "✓ 已付" : wait ? "待付" : "還沒付"}</button>`
         : `<span class="pill ${r ? "ok" : wait ? "wait" : "bad"}">${r ? "✓ 已付" : wait ? "待付" : "還沒付"}</span>`}</div>`;
       return `<li class="row">
-        <div class="who"><b>${esc(m.name)}</b>${S.canWrite ? tagHtml(m) : ""}
+        <div class="who"><b>${esc(m.name)}</b>
 </div>
         ${right}</li>`;
     }).join("") + `</ul>`;
@@ -1177,7 +1189,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const v = (k, fb) => esc(S.draft[k] ?? fb);
     return `<div class="card">
       <h2>季租場地日期</h2>
-      <p class="muted">點日期切換：<b>深色</b>＝上課，<s>淡色</s>＝停課（場地退、不收費）。改完記得按「確認儲存」。</p>
+      <p class="muted">點日期切換：<b>深色</b>＝上課，<s>淡色</s>＝停課（場地退、不收費）。</p>
       ${SEASONS.map((x, i) => `<div class="sz-ed">
         <div class="sz-ed-h"><b>${esc(x.name)}</b><span>${md(x.from)}～${md(x.to)}・${x.dates.length} 堂 × ${num(per)}＝${money(x.dates.length * per)}</span></div>
         <div class="chips">${seasonWeeks(x).map(d => `<button class="dchip" data-act="sz-date" data-date="${d}" aria-pressed="${x.dates.includes(d)}"${d < t ? " disabled" : ""}>${md(d)}</button>`).join("")}</div>
@@ -1201,8 +1213,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const offs = Object.keys(OFF_DATES).sort(), cts = Object.keys(COURT_FIX).sort();
     const item = (d, txt, act) => `<li><span><b>${md(d)}（${wd(d)}）</b>${txt}</span><button class="link" data-act="${act}" data-date="${d}">刪除</button></li>`;
     return `<div class="card">
-      <h2>特別日期</h2>
-      <p class="muted">臨時停課、指定開幾面、場地費預付都在這裡改，改完按「確認儲存」。試算表標「停課」的週也會自動停課。</p>
+      <h2>停課和開幾面</h2>
+      <p class="muted">試算表標「停課」的週也會自動停課。</p>
       <h3>停課的週六</h3>
       <ul class="sp-list">${offs.map(d => item(d, esc(OFF_DATES[d]), "sp-off-del")).join("") || `<li class="muted">沒有</li>`}</ul>
       <div class="fields"><label class="field"><span>日期</span><input id="sp_off_d" type="date" value="${v("sp_off_d", "")}"></label><label class="field"><span>原因</span><input id="sp_off_r" placeholder="例如：沒借到場地" value="${v("sp_off_r", "")}"></label></div>
@@ -1214,10 +1226,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <p class="muted">季租期間固定 2 面，不用設；季租以外的週六才需要指定。</p>
       <h3>場地費已預付到</h3>
       <div class="fields"><label class="field"><span>日期（空白＝沒有預付）</span><input id="sp_pre" type="date" value="${v("sp_pre", VENUE_PREPAID_TO)}"></label></div>
-      <div class="actions"><button class="btn small" data-act="sp-pre-save">存檔</button></div>
       ${(() => { const x = SEASONS.find(z => z.to >= today()); if(!x) return ""; const n = x.dates.filter(d => offReason(d)).length; return `<p class="muted">${esc(x.name)}已停場 <b>${n}／2</b> 次（合約每季最多 2 次）。</p>`; })()}
-      <p class="muted">這天以前的場地費會顯示「✓ 已匯款」（${esc(trName())}已匯款），不用再記付款。</p>
-      ${contractBox()}
+      <p class="muted">這天以前的場地費都算${esc(trName())}已匯款，不用再記。</p>
     </div>`;
   }
 
@@ -1239,15 +1249,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="card">
       <h2>班費收支</h2>
       <div class="summary">
-        <div class="stat ok"><b>${money(fi.extra + fi.inc)}</b><span>收入</span></div>
+        <div class="stat ok"><b>${money(fi.extra + fi.inc)}</b><span>收入${fi.extra ? `（含零頭 ${num(fi.extra)}）` : ""}</span></div>
         <div class="stat bad"><b>${money(fi.out)}</b><span>支出</span></div>
         <div class="stat"><b>${money(fi.bal)}</b><span>結餘</span></div>
       </div>
-      <table class="calc fund">
-        <tr><td>進位零頭<small>已結清 ${fi.settledN} 堂，自動計算</small></td><td></td><td class="ok">＋${num(fi.extra)}</td></tr>
+      ${fi.items.length ? `<table class="calc fund">
         ${fi.items.map(i => `<tr><td>${esc(i.what)}<small>${md(i.date)}</small></td><td>${S.canWrite ? `<button class="link" data-act="fund-del" data-id="${esc(i.id)}">刪除</button>` : ""}</td><td class="${i.type === "in" ? "ok" : "bad"}">${i.type === "in" ? "＋" : "－"}${num(i.amount)}</td></tr>`).join("")}
-        <tr class="total"><td>結餘</td><td></td><td>${money(fi.bal)}</td></tr>
-      </table>
+      </table>` : ""}
       ${S.canWrite ? `<h3>記一筆</h3>
       <div class="seg two" role="group" aria-label="收入或支出" style="max-width:260px"><button data-act="fd-type" data-v="out" aria-pressed="${type === "out"}">支出</button><button data-act="fd-type" data-v="in" aria-pressed="${type === "in"}">收入</button></div>
       <div class="fields">
@@ -1256,7 +1264,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <label class="field"><span>金額</span><input id="fd_amt" type="number" inputmode="numeric" min="0" value="${v("fd_amt", "")}"></label>
       </div>
       <div class="actions"><button class="btn" data-act="fund-add">記下這一筆</button></div>` : ""}
-      <p class="muted">班費來自每堂進位的零頭；買球、雜支記在這裡，大家都看得到。</p>
+      <p class="muted">班費來自每堂的進位零頭，買球、雜支記在這裡。</p>
     </div>`;
   }
 
@@ -1385,7 +1393,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             <label class="field"><span>姓名</span><input id="editName" value="${v("editName", m.name)}"></label>
             <label class="field"><span>備註</span><input id="editNote" value="${v("editNote", m.note)}"></label>
           </div>
-          <div class="actions"><button class="btn primary" data-act="edit-save" data-id="${m.id}">存檔</button><button class="btn" data-act="edit" data-id="">先不要</button></div>
+          <div class="actions"><button class="btn primary" data-act="edit-save" data-id="${m.id}">完成</button><button class="btn" data-act="edit" data-id="">先不要</button></div>
         </div></li>`;
       }
       const delBtns = S.delConfirm === m.id
@@ -1399,42 +1407,29 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           : `<button class="btn small" data-act="edit" data-id="${m.id}"${dis()}>編輯</button><button class="btn small" data-act="toggle" data-id="${m.id}"${dis()}>暫時停課</button>`}</div>`}
       </li>`;
     };
-    const f = fees(null, nextClassDate(schedule()));
-    return `
-      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list pair">${on.map(row).join("")}</ul>${adminHintP("照姓名筆畫排序。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
-      ${!S.canWrite ? "" : `<div class="card">
-        <h2>加入新隊友</h2>
-        <div class="fields">
-          <label class="field"><span>姓名</span><input id="newName" placeholder="例如：陳小美" value="${v("newName")}"${dis()}></label>
-          <label class="field"><span>備註（可以不填）</span><input id="newNote" placeholder="例如：運輪放球館" value="${v("newNote")}"${dis()}></label>
-        </div>
-        <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>
-        <p class="muted">加人或停課，費用會自動重算。</p>
-      </div>`}
-      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">停課的隊友不點名、不分攤，以前的紀錄都留著。</p><ul class="list pair">${off.map(row).join("")}</ul>` : ""}
-      ${!S.canWrite ? "" : `<div class="card">
-        <h2>課程和費用設定</h2>
-        <div class="fields">
-          <label class="field"><span>班名</span><input id="set_group" value="${v("set_group", s.group)}"${dis()}></label>
-          <label class="field"><span>地點</span><input id="set_location" value="${v("set_location", s.location)}"${dis()}></label>
-          <label class="field"><span>上課時間</span><input id="set_time" value="${v("set_time", s.time)}"${dis()}></label>
-          <label class="field"><span>第一堂是哪天</span><input id="set_start" type="date" value="${v("set_start", s.start)}"${dis()}></label>
-          <label class="field"><span>教練課幾小時（每堂）</span><input id="set_coachHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_coachHours", s.coachHours)}"${dis()}></label>
-          <label class="field"><span>教練費（每小時）</span><input id="set_coachRate" type="number" inputmode="numeric" min="0" value="${v("set_coachRate", s.coachRate)}"${dis()}></label>
-          <label class="field"><span>場地租幾小時（每堂）</span><input id="set_venueHours" type="number" inputmode="decimal" min="0" step="0.5" value="${v("set_venueHours", s.venueHours)}"${dis()}></label>
-          <label class="field"><span>1 面場地費（每小時，身障半價後）</span><input id="set_venueRate" type="number" inputmode="numeric" min="0" value="${v("set_venueRate", s.venueRate)}"${dis()}></label>
-          <label class="field"><span>季租前才用：幾人以上開 2 面場地（填 0 ＝不開）</span><input id="set_bigMin" type="number" inputmode="numeric" min="0" value="${v("set_bigMin", s.bigMin)}"${dis()}></label>
-          <label class="field"><span>2 面包場費（每小時，身障半價後）</span><input id="set_venueRate2" type="number" inputmode="numeric" min="0" value="${v("set_venueRate2", s.venueRate2)}"${dis()}></label>
-          <label class="field"><span>誰負責維護管理</span><select id="set_manager"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_manager ?? s.manager) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
-          <label class="field"><span>財務</span><select id="set_treasurer"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d.set_treasurer ?? s.treasurer) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
-          <label class="field"><span>場地租借人的稱呼（空白＝不顯示）</span><input id="set_bookerNick" placeholder="例如：芳玉" value="${v("set_bookerNick", s.bookerNick)}"${dis()}></label>
-          <label class="field"><span>財務的稱呼（提醒裡用）</span><input id="set_trNick" placeholder="例如：吉哥" value="${v("set_trNick", s.trNick)}"${dis()}></label>
-          <label class="field" style="grid-column:1/-1"><span>收款方式（會顯示給大家看）</span><input id="set_payInfo" placeholder="例如：LINE Pay 付給吳宗吉，或上課時給現金" value="${v("set_payInfo", s.payInfo)}"${dis()}></label>
-        </div>
-        <div class="actions"><button class="btn primary" data-act="settings-save"${dis()}>存檔</button></div>
-      </div>`}
-      ${S.canWrite ? seasonEditor() + specialEditor() : ""}
-      `;
+    const sec = (key, title, body, sub = "") => `<details class="sec card" data-key="${key}"><summary><h2>${title}</h2>${sub ? `<small>${sub}</small>` : ""}</summary><div class="sec-b">${body}</div></details>`;
+    const fld = (k, label, type = "text", extra = "") => `<label class="field"${type === "full" ? ' style="grid-column:1/-1"' : ""}><span>${label}</span><input id="set_${k}"${type === "number" ? ' type="number" inputmode="decimal" min="0" step="0.5"' : type === "int" ? ' type="number" inputmode="numeric" min="0"' : type === "date" ? ' type="date"' : ""}${extra} value="${v("set_" + k, s[k])}"${dis()}></label>`;
+    const pick = (k, label) => `<label class="field"><span>${label}</span><select id="set_${k}"${dis()}><option value="">（沒有指定）</option>${on.map(m => `<option value="${m.id}"${(d["set_" + k] ?? s[k]) === m.id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>`;
+    const team = `${on.length ? `<ul class="list pair">${on.map(row).join("")}</ul>` : `<p class="muted">名單還是空的，用下面加入第一位隊友。</p>`}
+      ${off.length ? `<h3>暫時停課（${off.length} 人）</h3><p class="muted">不點名、不分攤，以前的紀錄都留著。</p><ul class="list pair">${off.map(row).join("")}</ul>` : ""}
+      <h3>加入新隊友</h3>
+      <div class="fields">
+        <label class="field"><span>姓名</span><input id="newName" placeholder="例如：陳小美" value="${v("newName")}"${dis()}></label>
+        <label class="field"><span>備註（可不填）</span><input id="newNote" placeholder="例如：運輪放球館" value="${v("newNote")}"${dis()}></label>
+      </div>
+      <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>`;
+    const fee = `<h3>課程</h3>
+      <div class="fields">${fld("group", "班名")}${fld("location", "地點")}${fld("time", "上課時間")}${fld("start", "第一堂", "date")}</div>
+      <h3>費用</h3>
+      <div class="fields">${fld("coachHours", "教練課幾小時", "number")}${fld("coachRate", "教練每小時", "int")}${fld("venueHours", "場地租幾小時", "number")}${fld("venueRate", "1 面每小時", "int")}${fld("venueRate2", "2 面每小時", "int")}</div>
+      <p class="muted">場地費都填身障半價後的價格。</p>
+      <h3>人員</h3>
+      <div class="fields">${pick("manager", "管理員")}${pick("treasurer", "財務")}${fld("trNick", "財務的稱呼", "text", ' placeholder="例如：吉哥"')}${fld("bookerNick", "場地預訂人的稱呼", "text", ' placeholder="例如：芳玉"')}${fld("payInfo", "收款方式（大家看得到）", "full", ' placeholder="例如：LINE Pay 付給吳宗吉，或上課時給現金"')}</div>`;
+    return `<p class="muted">改完按下方「確認儲存」，才會存進雲端。</p>
+      ${sec("team", "隊友", team, `${on.length} 人上課${off.length ? `・${off.length} 人暫停` : ""}`)}
+      ${sec("fee", "課程和費用", fee)}
+      ${sec("season", "季租和停課", seasonEditor() + specialEditor())}
+      ${sec("contract", "場租合約重點", contractBox().replace(/^<h3>[^<]*<\/h3>/, ""))}`;
   }
 
   // 往下捲時把標題列縮小，畫面多看一點內容
@@ -1454,7 +1449,22 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(t.id === "mePick"){ setMe(t.value); S.meEdit = false; render(); return; }
     if(t.id === "datePick" && t.value){ S.date = clamp(t.value); render(); }
     else if(t.id) S.draft[t.id] = t.value;
+    if(t.id && t.id.startsWith("set_")) applySettings();
+    if(t.id === "sp_pre"){ VENUE_PREPAID_TO = t.value || ""; saveSpecial(); delete S.draft.sp_pre; setTimeout(scheduleRender, 0); }
   });
+  // 設定欄位一改就暫存，按下方「確認儲存」才寫進雲端
+  function applySettings(){
+    const next = { ...S.settings };
+    ["group","location","time","start","manager","treasurer","payInfo","trNick","bookerNick"].forEach(k => { const el = document.getElementById("set_" + k); if(el) next[k] = el.value.trim(); });
+    NUMS.forEach(k => { const el = document.getElementById("set_" + k); if(!el) return; const n = Number(el.value); next[k] = n >= 0 ? n : DEF[k]; });
+    if(!next.start) next.start = DEF.start;
+    delete next.perTerm;
+    if(next.start !== S.settings.start) S.date = null;
+    S.settings = next;
+    Object.keys(S.draft).filter(k => k.startsWith("set_")).forEach(k => delete S.draft[k]);
+    write("settings/main", save("settings", "main", next));
+    setTimeout(scheduleRender, 0);
+  }
 
   app.addEventListener("click", async e => {
     const b = e.target.closest("[data-act]"); if(!b || b.disabled) return;
@@ -1831,7 +1841,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     else if(adminBar.parentNode !== topWrap){ topWrap.prepend(adminBar); adminBar.classList.remove("wrap", "login-bottom"); }
     adminBar.hidden = false;
     if(S.canWrite){
-      adminBar.innerHTML = `<div class="admin on"><span>管理員模式：可以點名、記收款、改設定<small class="muted" style="display:block">${S.remember ? "這支手機會記住登入" : "關掉網頁或 2 小時沒操作會自動登出"}</small></span><button class="btn small" id="logoutBtn">登出</button></div>`;
+      adminBar.innerHTML = `<div class="admin on"><span><b>管理員模式</b><small class="muted" style="display:block">${S.remember ? "這支手機會記住登入" : "2 小時沒動作會自動登出"}</small></span><button class="btn small" id="logoutBtn">登出</button></div>`;
     } else if(S.loginOpen){
       adminBar.innerHTML = `<form class="admin" id="loginForm"><label class="field" style="flex:1 1 180px"><span>管理密碼</span><input id="pwInput" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label><button class="btn small" type="button" id="pwShow">顯示</button><button class="btn small primary" type="submit">登入</button><button class="btn small" type="button" id="loginCancel">先不要</button><label class="remember"><input type="checkbox" id="pwRemember">這是我的手機，記住我（沒勾：關網頁或 2 小時沒動就登出）</label><span id="pwHint" class="muted" style="flex-basis:100%" hidden>密碼不對喔。按「顯示」看一下：英數要半形，也注意瀏覽器有沒有自動帶入舊密碼。</span></form>`;
       setTimeout(() => { const el = document.getElementById("pwInput"); if(el) el.focus(); }, 0);
