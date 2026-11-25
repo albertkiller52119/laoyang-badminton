@@ -456,7 +456,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const SHEET_ID = "1o25HNU0IXbPkbgb9Zk37M_DjVjSo9zOCqqp34Ke1U_Y", SHEET_GID = "361843830";
   const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
   const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${SHEET_GID}`;
-  const NAME_ALIAS = { "簡建民": "簡健民", "簡健民": "簡建民" };   // 改名前後都對得上
   function parseCsv(t){
     const rows = []; let row = [], v = "", q = false;
     for(let i = 0; i < t.length; i++){
@@ -488,7 +487,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   const syncAgo = () => { if(!S.sheetAt) return ""; const m = Math.floor((Date.now() - S.sheetAt) / 60000); return m < 1 ? "・剛剛更新" : `・${m} 分鐘前更新`; };
   const sheetDay = d => (S.sheet && S.sheet.dates[d]) || null;
-  const memberByName = n => players().find(m => m.name === n) || players().find(m => NAME_ALIAS[n] && m.name === NAME_ALIAS[n]) || null;
+  const memberByName = n => players().find(m => m.name === n) || null;
   const sheetUnknown = () => S.sheet ? S.sheet.names.filter(n => !memberByName(n)) : [];
   const STOP = "#停課", COFF = "#教練請假";
   // 確認過的清單（Set 快取，資料一換就重算）
