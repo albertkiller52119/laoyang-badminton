@@ -699,7 +699,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 一、錢怎麼走
     const pd = prepaidDates();
     const pl = prepaidLine();
-    const money1 = sec("coin", "一、錢怎麼走？", `<ul>
+    const money1 = sec("coin", "錢怎麼走？", `<ul>
       <li>課費都付給${tr}，由${tr}付教練和場地${bk ? `；場地由${bk}預約` : ""}。</li>
       ${pl ? `<li>場地費 ${pl}，${tr}都已付清。大家每堂分攤的場地費，就是還給${tr}。</li>` : ""}
     </ul>`);
@@ -708,7 +708,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const preDays = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM && d >= S.settings.start && d >= t && !offReason(d)).sort();
     const preRow = d => { const fx = fees(classInfo(d).n, d); return `<tr><td>${md(d)}</td><td>${fx.two ? 2 : 1} 面</td><td>${money(fx.session)}</td></tr>`; };
     const ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
-    const each = sec("court", "二、每堂怎麼算？", `<ul>
+    const each = sec("court", "每堂怎麼算？", `<ul>
       <li><strong>每堂 ${s.venueHours} 小時：</strong>教練課 ${s.coachHours} 小時${s.venueHours > s.coachHours ? `＋自主練習 ${s.venueHours - s.coachHours} 小時` : ""}。</li>
       <li>每堂的教練費＋場地費，由當天上課的人平均分攤。</li>
     </ul>
@@ -719,7 +719,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     <p class="rb-p">人越少，每人分攤就越多，要請假記得早點在群組說喔！</p>` : ""}`);
     // 三、其他規則
     const k2 = Math.max(all - 1, 1);
-    const other = sec("sheet", "三、其他規則", `<ul>
+    const other = sec("sheet", "其他規則", `<ul>
       <li><strong>教練請假：</strong>當天只收場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
       <li><strong>整班停課：</strong>當週不上課，也不收費。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
