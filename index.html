@@ -324,6 +324,9 @@ body{font-variant-numeric:tabular-nums}
 .po-what b .po-no{margin-right:8px;vertical-align:.1em}
 .po-what b:has(.po-no) + small{padding-left:30px}
 .po-gap{height:6px}
+.po-list{border-bottom:1px solid var(--line,#e3e8ee);padding:8px 0}
+.po-list>summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.9rem}
+.po-list .list{margin-top:8px}
 .po-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--cat)}
 .po-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .po-amt{font-size:1.2rem;font-weight:800;font-variant-numeric:tabular-nums}
@@ -661,7 +664,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const leaveBox = () => `<div class="rules">
     <b>請假規則</b>
     <ul class="rule-list">
-      <li><strong>群組告知：</strong>${esc(trName())}會登記在「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」，大家隨時可以看。</li>
+      <li><strong>群組告知：</strong>在 LINE 群組說一聲就好，${esc(trName())}會登記在「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」。</li>
       <li><strong>事先請假：</strong>最晚請提前一週告知，當堂費用由實際出席的人平均分攤。若當天上課人數少於 4 人，則由大家討論是否停課。</li>
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤當堂課程費用。</li>
     </ul>
@@ -704,18 +707,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const t = today();
     const preDays = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM && d >= S.settings.start && d >= t && !offReason(d)).sort();
     const preRow = d => { const fx = fees(classInfo(d).n, d); return `<tr><td>${md(d)}</td><td>${fx.two ? 2 : 1} 面</td><td>${money(fx.session)}</td></tr>`; };
-    const time = (s.time || "").replace(/(\d)\s*[–—-]\s*(\d)/g, "$1～$2");
     const ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
     const each = sec("court", "二、每堂怎麼算？", `<ul>
-      ${time ? `<li><strong>上課時間：</strong>${esc(time)}。</li>` : ""}
+      <li><strong>每堂 ${s.venueHours} 小時：</strong>教練課 ${s.coachHours} 小時${s.venueHours > s.coachHours ? `＋自主練習 ${s.venueHours - s.coachHours} 小時` : ""}。</li>
       <li>每堂的教練費＋場地費，由當天上課的人平均分攤。</li>
     </ul>
     ${preDays.length ? `<h5>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）</h5>
-    <table class="rb-t"><thead><tr><th>日期</th><th>場地</th><th>每堂總費用</th></tr></thead><tbody>${preDays.map(preRow).join("")}</tbody></table>
-    <p class="muted">每人多少，看上面「這堂」卡片。</p>` : ""}
+    <table class="rb-t"><thead><tr><th>日期</th><th>場地</th><th>每堂總費用</th></tr></thead><tbody>${preDays.map(preRow).join("")}</tbody></table>` : ""}
     <h5>${md(SEASON_FROM)} 起季租：每堂 ${money(per)}<small>（教練 ${num(coach)}＋場地 ${num(sv)}）</small></h5>
     ${ks.length ? `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人費用</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table>
-    <p class="rb-p">人越少，每人分攤就越多，要請假記得早點跟${tr}說喔！</p>` : ""}`);
+    <p class="rb-p">人越少，每人分攤就越多，要請假記得早點在群組說喔！</p>` : ""}`);
     // 三、其他規則
     const k2 = Math.max(all - 1, 1);
     const other = sec("sheet", "三、其他規則", `<ul>
@@ -921,10 +922,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const owed = owedBy(m, sch).filter(d => d !== nd), total = owed.reduce((a, d) => a + oweAmount(m, d), 0);
     const pay = owed.length || next.cls === "";
     return `<div class="me">
-      <div class="me-top"><span class="me-hi">${esc(m.name)} 的帳單</span><button class="link" data-act="me-change">不是我</button></div>
+      <div class="me-top"><span class="me-hi">${esc(m.name.length >= 3 ? m.name.slice(1) : m.name)}，這是你的帳單</span><button class="link" data-act="me-change">不是我</button></div>
       <div class="me-grid">
         <div class="me-cell ${next.cls}"><span>${md(nd)} 這堂</span><b>${next.big}</b><small>${next.note}</small></div>
-        <div class="me-cell ${owed.length ? "bad" : "ok"}"><span>之前的課</span><b>${owed.length ? money(total) : "✓ 沒有欠款"}</b>${owed.length ? `<small>還沒付 ${owed.length} 堂：${owed.map(md).join("、")}</small>` : ""}</div>
+        <div class="me-cell ${owed.length ? "bad" : "ok"}"><span>之前的課</span><b>${owed.length ? money(total) : "都付清了 ✓"}</b>${owed.length ? `<small>還沒付 ${owed.length} 堂：${owed.map(md).join("、")}</small>` : ""}</div>
       </div>
       ${(() => { const t = today(), x = SEASONS.find(z => z.dates.length && z.dates[0] <= t && z.to >= t);
         const ds = x ? heldDates(liveDates(x)) : pastClasses(sch).map(i => i.date).filter(d => statusOf(d) !== "paused");
@@ -964,7 +965,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const ci = classInfo(d), f = fees(ci.n, d), lv = leaversOf(d);
     if(ci.st === "paused") return box("off", msg(`停課：${esc(lv.join("、"))} 請假，這週不上課、不收費`), modeSwitch("paused"));
     const dl = shiftDate(d, -7);
-    const foot = [where === "checkin" ? "" : lv.length ? `${esc(lv.join("、"))} 請假` : "沒有人請假",
+    const foot = [
       d >= t ? `請假截止 ${mdw(dl)}${t > dl ? "（已過，請假也要分攤）" : ""}` : "",
       f.coachOff ? "教練請假，只收場地費" : ""].filter(Boolean).join("・");
     const rec = (S.att[d] && S.att[d].records) || {}, on = active().filter(m => ci.ids.includes(m.id));
@@ -1038,9 +1039,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const total = Object.values(rec).reduce((a,r) => a + Number(r.amount||0), 0);
       h += `
         ${unpaid.length ? (S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-class" data-date="${d}">複製收費訊息，貼到 LINE</button></div>` : "") : `<div class="banner ok">✓ 大家都已付，辛苦了！</div>`}
-        ${fl.tr ? moneyCard(d, fl, paid.length, mustPay.length) : ""}
+        ${fl.tr ? moneyCard(d, fl, paid.length, mustPay.length, S.canWrite ? "" : payList(key, listed, ci.pp, d, "pair")) : ""}
         ${S.canWrite ? `<h3>隊友課費・已付 ${paid.length}／${mustPay.length} 人</h3>${payList(key, listed, ci.pp, d, "pair")}`
-          : `<details class="fold"><summary>大家繳費狀況（已付 ${paid.length}／${mustPay.length} 人）</summary>${payList(key, listed, ci.pp, d, "pair")}</details>`}
+          : fl.tr ? "" : `<details class="fold"><summary>大家繳費狀況（已付 ${paid.length}／${mustPay.length} 人）</summary>${payList(key, listed, ci.pp, d, "pair")}</details>`}
         `;
     }
     h += rulesBox();
@@ -1056,7 +1057,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
   // 這堂的錢怎麼走
   // 這堂錢怎麼走：① 隊友付給吉哥 ② 吉哥付教練、館方（一張卡看完）
-  function moneyCard(d, fl, paidN, mustN){
+  function moneyCard(d, fl, paidN, mustN, listHtml = ""){
     if(!fl.tr) return "";
     const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練"), s = S.settings;
     const num = x => Number(x).toLocaleString("en-US"), cf = fees(fl.ci.n, d), pp = fl.ci.pp, n = fl.ci.n, lv = leaveCount(d);
@@ -1088,7 +1089,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const tail = left > 0 ? `，零頭 ${num(left)} 存班費` : left < 0 ? `，還差 ${num(-left)}` : "，剛好打平";
     const sum = fl.pre ? `收 ${num(got)} ＝ ${fl.coach ? `教練 ${num(fl.coach)} ＋ ` : ""}還${tr}場地費 ${num(fl.venue)}${tail}` : `收 ${num(got)}、付 ${num(out)}${tail}`;
     return `<div class="card payout"><h2>這堂錢怎麼走</h2>
-        <div class="po-gap"></div>${share}
+        <div class="po-gap"></div>${share}${listHtml ? `<details class="po-list"><summary>看誰付了</summary>${listHtml}</details>` : ""}
         ${step(2, `${tr}付出去`)}${coach}${venue}
         ${S.canWrite ? `<div class="po-foot"><span>${tr}這堂還要付</span><b>${due ? money(due) : out && !(fl.pre && !fl.coach) ? "✓ 都已付" : "不用付"}</b></div>
         <div class="po-note">${sum}</div>` : ""}
@@ -1301,7 +1302,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const pct = v => (total ? Math.round(v / total * 1000) / 10 : 0) + "%";
     const started = done + paused > 0, paid = seasonPaid(x), auto = paid && !x.paid;
     const ds = liveDates(x), offs = []; if(ds.length) for(let d = ds[0]; d <= ds[ds.length - 1]; d = shiftDate(d, 7)) if(!ds.includes(d)) offs.push(d);
-    const pl = prepaidLine();
     return `<div class="card season">
       <h2>季租場地<small>${esc(x.name)}</small></h2>
       <div class="sz-top">
@@ -1317,7 +1317,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td><i class="sz-dot"></i>還沒上的 ${N - done - paused} 堂</td><td></td><td>${money(later)}</td></tr>
         <tr class="total"><td>季租合計</td><td></td><td>${money(total)}</td></tr>
       </table>` : ""}
-      <p class="muted">每堂收回 ${money(per)}，上完就剛好還清。${pl && pl.includes("＋") ? `<br>場地費 ${pl}，${tr}都已付清。` : ""}</p>
+      <p class="muted">每堂收回 ${money(per)}，上完就剛好還清。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-season">複製${done + paused >= N ? "季末結算" : "本季目前結算"}，貼到 LINE</button></div>` : ""}
     </div>`;
   }
