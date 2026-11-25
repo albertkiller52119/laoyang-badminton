@@ -518,6 +518,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   // 更新提醒：記住這支手機上次看到的請假紀錄表，有新的變動就列出來（按「知道了」收起）
   const SEEN = "ylSheetSeen2";
+  try { localStorage.removeItem("ylSheetSeen"); } catch(_){}   // 刪掉舊版的提醒紀錄
   const getSeen = () => { try { const v = JSON.parse(localStorage.getItem(SEEN) || "null"); return Array.isArray(v) ? v : null; } catch(_){ return null; } };
   const setSeen = keys => { try { localStorage.setItem(SEEN, JSON.stringify(keys)); } catch(_){} };
   const sheetChanges = () => {
@@ -1754,6 +1755,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const sv = (d.settings || {}).seasons;
       setSeasons(sv && Array.isArray(sv.list) ? sv.list : DEF_SEASONS);
       setSpecial((d.settings || {}).special);
+      // 刪掉舊版「管理員確認」用的雲端紀錄（管理員登入時自動清掉一次）
+      if(S.canWrite && (d.settings || {}).sheetok && !S.oldOkGone){ S.oldOkGone = true; gs("deleteDoc", S.pw, "settings", "sheetok").catch(() => { S.oldOkGone = false; }); }
       const fd = (d.settings || {}).fund;
       S.fund = { items: fd && Array.isArray(fd.items) ? fd.items : [] };
       mergeAtt();
