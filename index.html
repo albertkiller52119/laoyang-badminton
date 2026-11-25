@@ -517,7 +517,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     S.att = out;
   }
   // 更新提醒：記住這支手機上次看到的請假紀錄表，有新的變動就列出來（按「知道了」收起）
-  const SEEN = "ylSheetSeen";
+  const SEEN = "ylSheetSeen2";
   const getSeen = () => { try { const v = JSON.parse(localStorage.getItem(SEEN) || "null"); return Array.isArray(v) ? v : null; } catch(_){ return null; } };
   const setSeen = keys => { try { localStorage.setItem(SEEN, JSON.stringify(keys)); } catch(_){} };
   const sheetChanges = () => {
