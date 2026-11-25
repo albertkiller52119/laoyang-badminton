@@ -700,7 +700,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const pd = prepaidDates();
     const pl = prepaidLine();
     const money1 = sec("coin", "錢怎麼走？", `<ul>
-      <li>課費都付給${tr}，由${tr}付教練和場地${bk ? `；場地由${bk}預約` : ""}。</li>
+      <li>費用都付給${tr}，再由${tr}支付教練費和場地費${bk ? `；場地請${bk}幫忙預訂` : ""}。</li>
       ${pl ? `<li>場地費 ${pl}，${tr}都已付清。大家每堂分攤的場地費，就是還給${tr}。</li>` : ""}
     </ul>`);
     // 二、每堂怎麼算：季租前逐堂（每堂總費用），季租後固定 2 面＋人數對照
