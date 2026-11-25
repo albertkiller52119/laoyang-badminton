@@ -126,6 +126,14 @@ main{padding-block:18px 48px;display:grid;grid-template-columns:minmax(0,1fr);ga
 .rb-t th{font-size:.82rem;color:var(--muted);font-weight:700}
 .rb-t td:last-child,.rb-t th:last-child{text-align:right;font-weight:800}
 .rb .muted{margin:2px 0 0;font-size:.85rem}
+.rb h5{margin:6px 0 0;font-size:.92rem;font-weight:800;color:var(--fg)}
+.rb .rb-p{margin:0;font-size:.95rem}
+.rb-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rb-t5{min-width:0;width:100%;font-size:.9rem}
+.rb-t5 th,.rb-t5 td{padding:5px 4px;white-space:nowrap}
+.rb-t5 th{font-size:.78rem}
+.rb-t5 td:nth-child(n+3),.rb-t5 th:nth-child(n+3){text-align:right}
+.rb-t5 td:not(:last-child){font-weight:400}
 
 .summary{display:flex;flex-wrap:nowrap;gap:6px}
 /* 繳費頁：這堂摘要卡 */
@@ -669,33 +677,42 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const num = x => Number(x).toLocaleString("en-US");
     const coach = s.coachHours * s.coachRate, sv = s.venueHours * s.venueRate2, per = coach + sv;
     const sec = (icon, title, body) => `<div class="rb-sec"><h4>${ic(icon)}${title}</h4>${body}</div>`;
-    // 錢怎麼走
+    const all = players().length;
+    // 一、錢怎麼走
     const pd = prepaidDates();
-    const money1 = sec("coin", "錢怎麼走", `<ul>
-      <li>課費都付給${tr}，由${tr}付教練費和場地費；${tr}自己那份不用付。</li>
-      ${bk ? `<li>場地租借窗口是${bk}，費用請${tr}匯款。</li>` : ""}
-      ${pd.length ? `<li>${md(pd[0])}～${md(pd[pd.length - 1])} 共 ${pd.length} 堂的場地費 <b>${money(prepaidSum(pd))}</b>，${tr}已經先付清了。大家課費裡的場地費，就是還給${tr}。</li>` : ""}
+    const money1 = sec("coin", "一、錢怎麼走？", `<ul>
+      <li><strong>課費統一交給${tr}：</strong>請${tr}協助支付教練費及場地費，${tr}自己的課費免繳。</li>
+      ${bk ? `<li><strong>場地租借：</strong>請${bk}協助預約場地，場地費請${tr}匯款。</li>` : ""}
+      ${pd.length ? `<li><strong>季租費用：</strong>${md(pd[0])}～${md(pd[pd.length - 1])} 共 ${pd.length} 堂，場地費合計 <b>${money(prepaidSum(pd))}</b>，已由${tr}先行付清。大家每堂分攤的場地費，就是還給${tr}的費用。</li>` : ""}
     </ul>`);
-    // 每堂怎麼算：季租前逐堂列出（人數照目前請假算），季租後固定 2 面
+    // 二、每堂怎麼算：季租前逐堂列表（人數照目前請假即時算），季租後固定 2 面
     const t = today();
     const preDays = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM && d >= S.settings.start && d >= t && !offReason(d)).sort();
-    const preLine = d => { const ci = classInfo(d), fx = fees(ci.n, d);
-      return `<li><b>${md(d)}</b>：${fx.two ? 2 : 1} 面，一堂 ${num(fx.session)}${ci.n ? `，目前 ${ci.n} 人上課，每人 <b>${money(ci.pp)}</b>` : ""}</li>`; };
-    const each = sec("court", "每堂怎麼算", `<ul>
-      ${s.time ? `<li>上課時間：${esc(s.time)}</li>` : ""}
-      <li>教練費＋場地費，由當天上課的人平分。</li>
-      ${preDays.length ? `<li>季租前（到 ${md(shiftDate(SEASON_FROM, -1))}）：<ul>${preDays.map(preLine).join("")}</ul></li>` : ""}
-      <li>${md(SEASON_FROM)} 起季租，固定 2 面：教練 ${num(coach)}＋場地 ${num(sv)}，一堂 <b>${money(per)}</b>。</li>
+    const preRow = d => { const ci = classInfo(d), fx = fees(ci.n, d);
+      return `<tr><td>${md(d)}</td><td>${fx.two ? 2 : 1} 面</td><td>${money(fx.session)}</td><td>${ci.n} 人</td><td>${ci.n ? money(ci.pp) : "－"}</td></tr>`; };
+    const time = (s.time || "").replace(/(\d)\s*[–—-]\s*(\d)/g, "$1～$2");
+    const each = sec("court", "二、每堂怎麼算？", `<ul>
+      ${time ? `<li><strong>上課時間：</strong>${esc(time)}。</li>` : ""}
+      <li>每堂課的教練費＋場地費，由當天上課的人平均分攤。</li>
+    </ul>
+    ${preDays.length ? `<h5>季租前（12 月至 ${md(shiftDate(SEASON_FROM, -1))}）</h5>
+    <div class="rb-scroll"><table class="rb-t rb-t5"><thead><tr><th>日期</th><th>場地</th><th>每堂總費用</th><th>上課人數</th><th>每人費用</th></tr></thead><tbody>${preDays.map(preRow).join("")}</tbody></table></div>` : ""}
+    <h5>${md(SEASON_FROM)} 起正式季租</h5>
+    <p class="rb-p">固定租用 2 面場地，每堂費用如下：</p>
+    <ul>
+      <li>教練費：${money(coach)}</li>
+      <li>場地費：${money(sv)}</li>
+      <li>每堂合計：<b>${money(per)}</b></li>
     </ul>`);
-    // 人少每人就多：從全班人數往下列到 4 人
-    const all = players().length, ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
-    const table = ks.length ? sec("people", "上課人數和每人費用（季租每堂）", `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table><p class="muted">人越少，每人就多一點；要請假請早點告知${tr}。</p>`) : "";
-    // 其他規則
+    // 三、季租後每人分攤：從全班人數往下列到 4 人
+    const ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
+    const table = ks.length ? sec("people", "三、季租後每人分攤費用", `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人費用</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table><p class="rb-p">人數越少，每個人分攤的費用就越高，所以如果需要請假，記得提早告知${tr}喔！</p>`) : "";
+    // 四、其他規則
     const k2 = Math.max(all - 1, 1);
-    const other = sec("sheet", "其他規則", `<ul>
-      <li>教練請假那天只收場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
-      <li>停課那週不上課、不收費。</li>
-      <li>金額有零頭一律進位到整數元，多出來的存進班費。</li>
+    const other = sec("sheet", "四、其他規則", `<ul>
+      <li><strong>教練請假：</strong>當天只收場地費，不收教練費。例如 ${k2} 人上課，每人分攤 ${money(Math.ceil(sv / k2))}。</li>
+      <li><strong>整班停課：</strong>當週不上課，也不收費。</li>
+      <li><strong>金額進位：</strong>每人分攤金額有零頭，一律無條件進位至整數元，多出的金額存入班費。</li>
     </ul>`);
     return `<details class="rules rb">
     <summary><b>收費小提醒</b></summary>
