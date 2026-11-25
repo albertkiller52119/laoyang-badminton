@@ -1327,7 +1327,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td><i class="sz-dot"></i>還沒上的 ${N - done - paused} 堂</td><td></td><td>${money(later)}</td></tr>
         <tr class="total"><td>季租合計</td><td></td><td>${money(total)}</td></tr>
       </table>` : ""}
-      <p class="muted">每堂收回 ${money(per)}，上完就剛好還清。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-season">複製${done + paused >= N ? "季末結算" : "本季目前結算"}，貼到 LINE</button></div>` : ""}
     </div>`;
   }
