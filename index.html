@@ -1840,9 +1840,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") idleCheck(); });
   function renderAdminBar(){
     if(!S.online){ adminBar.hidden = true; return; }
-    // 登入表單放在頁面最下方（頁尾上面）；登入後的管理員列回到最上方
+    // 登入表單和管理員模式列都放在頁面最下方（頁尾上面）
     const topWrap = document.getElementById("notice").parentNode, footEl = document.getElementById("foot");
-    if(!S.canWrite && S.loginOpen){ footEl.before(adminBar); adminBar.classList.add("wrap", "login-bottom"); }
+    if(S.canWrite || S.loginOpen){ if(adminBar.previousElementSibling !== footEl.previousElementSibling || adminBar.nextElementSibling !== footEl) footEl.before(adminBar); adminBar.classList.add("wrap", "login-bottom"); }
     else if(adminBar.parentNode !== topWrap){ topWrap.prepend(adminBar); adminBar.classList.remove("wrap", "login-bottom"); }
     adminBar.hidden = false;
     if(S.canWrite){
