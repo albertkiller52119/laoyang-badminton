@@ -672,8 +672,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 錢怎麼走
     const pd = prepaidDates();
     const money1 = sec("coin", "錢怎麼走", `<ul>
-      <li>課費都付給${tr}，由${tr}付${cn}的教練費和館方的場地費；${tr}自己那份不用付。</li>
-      ${bk ? `<li>場地是${bk}向館方租的，場地費由${tr}匯款。</li>` : ""}
+      <li>課費都付給${tr}，由${tr}付教練費和場地費；${tr}自己那份不用付。</li>
+      ${bk ? `<li>場地租借窗口是${bk}，費用請${tr}匯款。</li>` : ""}
       ${pd.length ? `<li>${md(pd[0])}～${md(pd[pd.length - 1])} 共 ${pd.length} 堂的場地費 <b>${money(prepaidSum(pd))}</b>，${tr}已經先付清了。大家課費裡的場地費，就是還給${tr}。</li>` : ""}
     </ul>`);
     // 每堂怎麼算：季租前逐堂列出（人數照目前請假算），季租後固定 2 面
