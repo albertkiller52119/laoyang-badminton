@@ -455,7 +455,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   let OFF_DATES = {}, COURT_FIX = {}, VENUE_PREPAID_TO = "";
   function setSpecial(x){ x = x || DEF_SPECIAL; OFF_DATES = { ...(x.off || {}) }; COURT_FIX = { ...(x.courts || {}) }; VENUE_PREPAID_TO = x.prepaidTo || ""; }
   setSpecial(DEF_SPECIAL);
-  // ---------- 請假紀錄試算表：請假、停課、教練請假都以試算表為準（管理員確認後才更新到網頁） ----------
+  // ---------- 請假紀錄試算表：請假、停課、教練請假都以試算表為準（自動同步，有變動會提醒） ----------
   const SHEET_ID = "1o25HNU0IXbPkbgb9Zk37M_DjVjSo9zOCqqp34Ke1U_Y", SHEET_GID = "361843830";
   const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
   const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${SHEET_GID}`;
@@ -493,22 +493,19 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const memberByName = n => players().find(m => m.name === n) || null;
   const sheetUnknown = () => S.sheet ? S.sheet.names.filter(n => !memberByName(n)) : [];
   const STOP = "#停課", COFF = "#教練請假";
-  // 確認過的清單（Set 快取，資料一換就重算）
-  let okCache = null, okSrc;
-  const okSet = () => { const src = S.sheetOk || S.sheet; if(src !== okSrc){ okSrc = src; okCache = new Set(okLeaveKeys()); } return okCache; };
-  const offReason = d => OFF_DATES[d] || (okSet().has(d + "|" + STOP) ? ((sheetDay(d) && sheetDay(d).note) || "停課") : "");
-  const coachOff = d => okSet().has(d + "|" + COFF);
   // 請假紀錄表上目前所有的請假、停課、教練請假（日期|名字、日期|#停課、日期|#教練請假）
   const sheetLeaveKeys = () => { const out = []; if(S.sheet) Object.entries(S.sheet.dates).forEach(([d, x]) => {
     x.leave.forEach(n => out.push(d + "|" + n)); if(x.stop) out.push(d + "|" + STOP); if(x.coachOff) out.push(d + "|" + COFF); }); return out.sort(); };
-  // 網頁採用的請假：管理員確認過的那一版；還沒有確認紀錄就直接用試算表
-  const okLeaveKeys = () => S.sheetOk || sheetLeaveKeys();
+  // 試算表一更新，網頁就自動跟著改（Set 快取，資料一換就重算）
+  let okCache = null, okSrc;
+  const okSet = () => { if(S.sheet !== okSrc){ okSrc = S.sheet; okCache = new Set(sheetLeaveKeys()); } return okCache; };
+  const offReason = d => OFF_DATES[d] || (okSet().has(d + "|" + STOP) ? ((sheetDay(d) && sheetDay(d).note) || "停課") : "");
+  const coachOff = d => okSet().has(d + "|" + COFF);
   function mergeAtt(){
     const out = { ...(S.rawAtt || {}) };
-    const ok = okLeaveKeys(), byDate = {};
-    ok.forEach(k => { const [d, n] = k.split("|"); if(n[0] !== "#") (byDate[d] = byDate[d] || []).push(n); });
-    const dates = new Set([...(S.sheet ? Object.keys(S.sheet.dates) : []), ...Object.keys(byDate)]);
-    if(S.sheet || ok.length) dates.forEach(d => {
+    const byDate = {};
+    sheetLeaveKeys().forEach(k => { const [d, n] = k.split("|"); if(n[0] !== "#") (byDate[d] = byDate[d] || []).push(n); });
+    if(S.sheet) Object.keys(S.sheet.dates).forEach(d => {
       const rec = {};
       Object.entries((out[d] && out[d].records) || {}).forEach(([id, v]) => { if(v !== "leave") rec[id] = v; });
       (byDate[d] || []).forEach(n => { const m = memberByName(n); if(m) rec[m.id] = "leave"; });
@@ -519,57 +516,37 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     });
     S.att = out;
   }
-  // 請假紀錄表有新增／取消請假：先提醒管理員，按「確認」才更新到網頁（大家看到的也是確認後的）
-  const pendingLeave = () => {
-    if(!S.sheet || !S.sheetOk) return { add: [], del: [] };
-    const cur = sheetLeaveKeys(), ok = S.sheetOk, st = S.settings.start;
-    return { add: cur.filter(k => !ok.includes(k) && k >= st), del: ok.filter(k => !cur.includes(k) && k >= st) };
+  // 更新提醒：記住這支手機上次看到的請假紀錄表，有新的變動就列出來（按「知道了」收起）
+  const SEEN = "ylSheetSeen";
+  const getSeen = () => { try { const v = JSON.parse(localStorage.getItem(SEEN) || "null"); return Array.isArray(v) ? v : null; } catch(_){ return null; } };
+  const setSeen = keys => { try { localStorage.setItem(SEEN, JSON.stringify(keys)); } catch(_){} };
+  const sheetChanges = () => {
+    if(!S.sheet) return { add: [], del: [] };
+    const cur = sheetLeaveKeys(), seen = getSeen();
+    if(!seen){ setSeen(cur); return { add: [], del: [] }; }   // 第一次打開：不提醒
+    const t = today();
+    return { add: cur.filter(k => !seen.includes(k) && k >= t), del: seen.filter(k => !cur.includes(k) && k >= t) };
   };
   function sheetAlert(){
-    if(!S.canWrite) return "";
-    const { add, del } = pendingLeave();
+    const { add, del } = sheetChanges();
     if(!add.length && !del.length) return "";
     const fmt = k => { const [d, n] = k.split("|"); return `<b>${md(d)}</b> ${esc(n)}`; };
     const fmtD = k => `<b>${md(k.split("|")[0])}</b>`;
     const isL = k => k.split("|")[1][0] !== "#", is = t => k => k.endsWith("|" + t);
     const lines = [
       ["新增請假", add.filter(isL), fmt], ["取消請假", del.filter(isL), fmt],
-      ["新增停課", add.filter(is(STOP)), fmtD], ["取消停課", del.filter(is(STOP)), fmtD],
+      ["停課", add.filter(is(STOP)), fmtD], ["取消停課", del.filter(is(STOP)), fmtD],
       ["教練請假", add.filter(is(COFF)), fmtD], ["取消教練請假", del.filter(is(COFF)), fmtD]
     ].filter(x => x[1].length).map(([t, ks, f]) => `<div>${t}：${ks.map(f).join("、")}</div>`).join("");
-    const cur = sheetLeaveKeys();
     const dates = [...new Set([...add, ...del].map(k => k.split("|")[0]))].sort();
-    // 暫時把「確認清單」換成試算表目前的樣子，算出更新後的結果
-    const asCur = fn => { const o = S.sheetOk; S.sheetOk = null; try { return fn(); } finally { S.sheetOk = o; } };
-    const after = d => asCur(() => {
-      if(offReason(d)) return `${md(d)} 停課，不收費`;
-      const off = cur.filter(k => k.startsWith(d + "|")).map(k => memberByName(k.split("|")[1])).filter(Boolean).map(m => m.id);
-      const n = players().filter(m => !off.includes(m.id)).length, pp = n ? Math.ceil(fees(n, d).session / n) : 0;
-      return `${md(d)} 上課 ${n} 人、每人 ${money(pp)}${coachOff(d) ? "（教練請假，只收場地費）" : ""}`;
-    });
+    const now = d => { if(offReason(d)) return `${md(d)} 停課，不收費`; const ci = classInfo(d);
+      return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${coachOff(d) ? "（教練請假，只收場地費）" : ""}`; };
     return `<div class="sheet-alert" role="status">
-      <b class="sa-h">${ic("sheet")} 請假紀錄表有變動，還沒更新到網頁</b>
+      <b class="sa-h">${ic("sheet")} 請假紀錄表有更新</b>
       ${lines}
-      <div class="muted">更新後：${dates.map(after).join("；")}</div>
-      <div class="actions"><button class="btn small primary" data-act="sheet-ok">確認，更新到網頁</button><a class="btn small" href="${SHEET_URL}" target="_blank" rel="noopener">打開請假表</a></div>
-      <div class="muted">確認之前，網頁和大家看到的還是原本的請假、停課和金額。</div>
+      <div class="muted">現在：${dates.map(now).join("；")}</div>
+      <div class="actions"><button class="btn small primary" data-act="sheet-ok">知道了</button><a class="btn small" href="${SHEET_URL}" target="_blank" rel="noopener">打開請假表</a></div>
     </div>`;
-  }
-  // 存下「已確認」的請假，直接寫進雲端（不用再按確認儲存）
-  async function saveSheetOk(keys, quiet){
-    try {
-      await gs("saveDoc", S.pw, "settings", "sheetok", { keys, v: 2, at: Date.now() });
-      S.sheetOk = keys; S.sheetOkV = 2; mergeAtt(); render();
-      if(!quiet) toast("已更新到網頁 ✓");
-    } catch(e){ if(!quiet) toast("沒存成功，檢查一下網路再試一次"); }
-  }
-  // 第一次用：把目前的請假當成已確認，之後的變動才需要確認
-  let baselining = false;
-  function ensureSheetBaseline(){
-    if(!S.canWrite || !S.sheet || !S.loaded.settings || baselining) return;
-    if(S.sheetOk && S.sheetOkV >= 2) return;
-    const keys = S.sheetOk ? [...new Set([...S.sheetOk, ...sheetLeaveKeys().filter(k => k.split("|")[1][0] === "#")])].sort() : sheetLeaveKeys();
-    baselining = true; saveSheetOk(keys, true).finally(() => { baselining = false; });
   }
   // 寫回雲端時，試算表管的日期不存請假（以試算表為準）
   const cloudDoc = doc => !sheetDay(doc.date) ? doc : { date: doc.date, records: Object.fromEntries(Object.entries(doc.records || {}).filter(([, v]) => v !== "leave")) };
@@ -1485,7 +1462,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     switch(act){
       case "goto": S.tab = b.dataset.tab; render(); break;
       case "me-change": S.meEdit = true; render(); break;
-      case "sheet-ok": saveSheetOk(sheetLeaveKeys()); break;
+      case "sheet-ok": setSeen(sheetLeaveKeys()); render(); break;
       case "sz-date": case "sz-cancel": {
         const d = b.dataset.date, x = seasonOf(d); if(!x) { toast("這天不在任何一季裡"); break; }
         const was = x.dates.includes(d);
@@ -1777,7 +1754,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const sv = (d.settings || {}).seasons;
       setSeasons(sv && Array.isArray(sv.list) ? sv.list : DEF_SEASONS);
       setSpecial((d.settings || {}).special);
-      { const so = (d.settings || {}).sheetok; S.sheetOk = so && Array.isArray(so.keys) ? so.keys : null; S.sheetOkV = (so && so.v) || 1; }
       const fd = (d.settings || {}).fund;
       S.fund = { items: fd && Array.isArray(fd.items) ? fd.items : [] };
       mergeAtt();
@@ -1789,7 +1765,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const d = await gs("getData");
       if(pendingWrites || staged.size) return; // 還有資料在存或還沒儲存，先不要蓋掉畫面
       applyData(d);
-      ensureSheetBaseline();
       try { localStorage.setItem(CACHE, JSON.stringify({ t: Date.now(), d })); } catch(_){}
       if(!S.loginOpen) renderAdminBar();   // 名單載入後補上管理員名字
       if(S.offline){ S.offline = false; notice(""); }
@@ -1809,7 +1784,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       try { localStorage.setItem("ylSheet", txt); } catch(_){}
       document.querySelectorAll(".sync-at").forEach(el => el.textContent = syncAgo());
       if(pendingWrites || staged.size) return;   // 有修改還沒存，等存完重新載入時再合併
-      mergeAtt(); ensureSheetBaseline(); scheduleRender();
+      mergeAtt(); scheduleRender();
     } catch(_){}
   }
   try { const p = parseSheet(localStorage.getItem("ylSheet") || ""); if(p) S.sheet = p; } catch(_){}
