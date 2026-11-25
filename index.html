@@ -638,9 +638,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const leaveBox = () => `<div class="rules">
     <b>請假規則</b>
     <ul class="rule-list">
-      ${S.sheet ? `<li><strong>怎麼請假：</strong>到「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」登記，網頁會自動同步<span class="sync-at">${syncAgo()}</span>。</li>` : ""}
-      <li><strong>事先請假：</strong>最晚請提前一週告知，課程費用由實際出席人數平均分攤。若上課人數少於 4 人，則由大家討論是否停課。</li>
-      <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤課程費用。</li>
+      <li><strong>請假登記：</strong>${esc(trName())}會統一將請假資訊登記在「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」，並自動同步更新，方便大家隨時查看。</li>
+      <li><strong>事先請假：</strong>最晚請提前一週告知，當堂費用由實際出席的人平均分攤。若當天上課人數少於 4 人，則由大家討論是否停課。</li>
+      <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤當堂課程費用。</li>
     </ul>
     ${S.canWrite && S.sheet ? `<p class="muted">想記已繳，也可以在請假紀錄表的名字格填「已付」。${sheetUnknown().length ? `<br><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）` : ""}</p>` : ""}
   </div>`;
@@ -689,7 +689,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     </ul>`);
     // 人少每人就多：從全班人數往下列到 4 人
     const all = players().length, ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
-    const table = ks.length ? sec("people", "上課人數和每人費用（季租每堂）", `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table><p class="muted">人越少，每人就多一點；要請假請早點登記。</p>`) : "";
+    const table = ks.length ? sec("people", "上課人數和每人費用（季租每堂）", `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table><p class="muted">人越少，每人就多一點；要請假請早點告知${tr}。</p>`) : "";
     // 其他規則
     const k2 = Math.max(all - 1, 1);
     const other = sec("sheet", "其他規則", `<ul>
