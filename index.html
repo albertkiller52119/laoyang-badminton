@@ -880,6 +880,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   app.addEventListener("focusout", () => { if(pendingRender){ setTimeout(()=>{ if(pendingRender){ pendingRender=false; render(); } }, 0); } });
 
+  // 記住哪些下拉選項是打開的
+  const openDetails = new Set();
+  app.addEventListener("toggle", e => { const k = e.target.dataset && e.target.dataset.k; if(k) e.target.open ? openDetails.add(k) : openDetails.delete(k); }, true);
   function render(){
     const s = S.settings;
     document.getElementById("groupName").textContent = s.group || "輪椅羽球點名簿";
@@ -897,6 +900,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(!S.date) S.date = nextClassDate(sch);
     if(!S.date) S.date = nextClassDate(sch);
     app.innerHTML = sheetAlert() + renewAlert() + ({checkin:viewCheckin, pay:viewPay, stats:viewStats, members:viewMembers})[S.tab](sch);
+    // 重畫後，把剛才打開的下拉選項照樣打開（自動更新不會把它收起來）
+    const seen = {};
+    app.querySelectorAll("details").forEach(el => {
+      const c = el.className, k = `${S.tab}:${c}:${seen[c] = (seen[c] || 0) + 1}`;
+      el.dataset.k = k;
+      if(openDetails.has(k)) el.open = true;
+    });
   }
 
   function noMembers(){
