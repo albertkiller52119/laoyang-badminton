@@ -220,6 +220,10 @@ details.rules[open] > summary::after{content:"收起 ▴"}
 .sz-paid{margin-top:10px;padding:8px 12px;border-radius:10px;font-weight:800;font-size:.9rem}
 .sz-paid.ok{background:var(--ok-bg);color:var(--ok)} .sz-paid.bad{background:var(--bad-bg);color:var(--bad)}
 .sz-calc tr.bad td{color:var(--bad);font-weight:800}
+.sz-rules{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.sz-rules h3{display:flex;align-items:center;gap:6px;margin:0 0 6px;color:var(--fg);font-size:1rem;letter-spacing:0}
+.sz-rules .rule-list{margin:0;font-size:.93rem;line-height:1.65}
+.stats-empty{text-align:center;margin:4px 0 14px}
 .fc{display:grid;margin-top:2px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8rem;font-weight:700;color:var(--muted)}
 .legend i,.pill[data-cat]::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:.05em;background:var(--cat)}
@@ -660,7 +664,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     ${S.canWrite && sheetUnknown().length ? `<p class="muted"><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）</p>` : ""}
   </div>`;
   // 管理員：場租合約重點
-  const contractBox = () => `<h3>場租合約重點</h3>
+  const contractBox = () => `<h3>${ic("sheet")}場租合約重點</h3>
       <ul class="rule-list">
         <li><strong>停場：</strong>每季最多 2 次，要 7 天前告訴館方（颱風除外）；場租下季扣除，不續租就退費。</li>
         <li><strong>館方活動：</strong>館方要改期或暫停，場租下季退。</li>
@@ -1148,7 +1152,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div class="stat warn"><b>${paused.length} 週</b><span>停課</span></div>
         <div class="stat bad"><b>${owing} 人</b><span>有欠費</span></div>
       </div>` : ""}
-      ${!held && !paused.length ? `<div class="empty"><b>還沒開始上課</b>第一堂上完後，這裡會開始統計出席和欠費。</div>` : `<div class="card"><h2>出席和欠費</h2>
+      ${!held && !paused.length ? "" : `<div class="card"><h2>出席和欠費</h2>
       <div class="tablewrap"><table class="ledger att-t">
         <thead><tr><th>隊友</th><th class="num">出席</th><th class="num">請假</th><th class="num">缺席</th><th class="num">欠費</th></tr></thead>
         <tbody>${rows.map(r => { const owe = r.owed.reduce((a, x) => a + oweAmount(r.m, x), 0); return `<tr>
@@ -1158,10 +1162,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         </tr>`; }).join("")}</tbody>
       </table></div>
       <p class="muted">只算上過的課；沒請假就算出席。停課不收費，請假不用付。</p></div>`}
+      ${paused.length ? `<div class="card"><h2>哪幾週停課過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${mdw(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}
       ${seasonCard()}
+      ${!held && !paused.length ? `<p class="muted stats-empty">還沒開始上課，第一堂上完後，這裡會開始統計出席和欠費。</p>` : ""}
       ${ledgerCard(sch)}
-      ${fundCard(sch)}
-      ${paused.length ? `<div class="card"><h2>哪幾週停課過</h2><ul class="list">${paused.map(i => `<li class="row"><div class="who"><b>${mdw(i.date)}</b><span class="sub">${esc(leaversOf(i.date).join("、"))} 請假</span></div></li>`).join("")}</ul></div>` : ""}`;
+      ${fundCard(sch)}`;
   }
 
 
@@ -1313,6 +1318,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <tr><td><i class="sz-dot"></i>還沒上的 ${N - done - paused} 堂</td><td></td><td>${money(later)}</td></tr>
         <tr class="total"><td>季租合計</td><td></td><td>${money(total)}</td></tr>
       </table>` : ""}
+      <div class="sz-rules">${contractBox()}</div>
       ${S.canWrite ? `<div class="actions"><button class="btn small" data-act="copy-season">複製${done + paused >= N ? "季末結算" : "本季目前結算"}，貼到 LINE</button></div>` : ""}
     </div>`;
   }
@@ -1428,8 +1434,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<p class="muted">改完按下方「確認儲存」，才會存進雲端。</p>
       ${sec("team", "隊友", team, `${on.length} 人上課${off.length ? `・${off.length} 人暫停` : ""}`)}
       ${sec("fee", "課程和費用", fee)}
-      ${sec("season", "季租和停課", seasonEditor() + specialEditor())}
-      ${sec("contract", "場租合約重點", contractBox().replace(/^<h3>[^<]*<\/h3>/, ""))}`;
+      ${sec("season", "季租和停課", seasonEditor() + specialEditor())}`;
   }
 
   // 往下捲時把標題列縮小，畫面多看一點內容
