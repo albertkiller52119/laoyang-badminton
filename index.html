@@ -620,17 +620,16 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return j.data;
   }
 
-  // 排序：先依分級（WH1 → WH2 → SL3 → SL4 → SU5 → SH6 → 未分級），同分級再依姓名筆畫由少到多
+  // 排序：依姓名筆畫由少到多
   let strokeSort;
   try { strokeSort = new Intl.Collator("zh-Hant-TW-u-co-stroke"); } catch(_) { strokeSort = new Intl.Collator("zh-Hant-TW"); }
   const classRank = c => { const i = CLASSES.indexOf(c || "未分級"); return i < 0 ? CLASSES.length : i; };
-  const byClassThenStroke = (a, b) => (classRank(a.cls) - classRank(b.cls)) || strokeSort.compare(a.name || "", b.name || "");
+  const byClassThenStroke = (a, b) => strokeSort.compare(a.name || "", b.name || "");
   const active = () => S.members.filter(m => m.active !== false);
   const players = () => active().filter(m => m.role !== "coach");
   const nameOf = id => (S.members.find(m => m.id === id) || {}).name || "（已刪除的隊友）";
   const dis = () => S.canWrite ? "" : " disabled";
-  const tagHtml = m => (m.cls && m.cls !== "未分級" ? `<span class="tag">${esc(m.cls)}</span>` : "")
-    + (m.id === S.settings.manager ? `<span class="tag role">管理</span>` : "")
+  const tagHtml = m => (m.id === S.settings.manager ? `<span class="tag role">管理</span>` : "")
     + (m.id === S.settings.treasurer ? `<span class="tag role">財務</span>` : "");
   // 財務（收錢的人）和先付場地費的人
   const treasurerOf = () => active().find(m => m.id === S.settings.treasurer) || null;
@@ -1153,7 +1152,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <div class="tablewrap"><table class="ledger att-t">
         <thead><tr><th>隊友</th><th class="num">出席</th><th class="num">請假</th><th class="num">缺席</th><th class="num">欠費</th></tr></thead>
         <tbody>${rows.map(r => { const owe = r.owed.reduce((a, x) => a + oweAmount(r.m, x), 0); return `<tr>
-          <td><b>${esc(r.m.name)}</b><small>${esc(r.m.cls && r.m.cls !== "未分級" ? r.m.cls : "")}</small></td>
+          <td><b>${esc(r.m.name)}</b></td>
           <td class="num">${r.p || "–"}</td><td class="num">${r.l || "–"}</td><td class="num">${r.a || "–"}</td>
           <td class="num ${r.owed.length ? "bad" : "ok"}">${r.owed.length ? `${money(owe)}<small>${r.owed.length} 堂</small>${S.canWrite ? `<button class="link" data-act="copy-one" data-id="${r.m.id}">複製私訊</button>` : ""}` : "✓"}</td>
         </tr>`; }).join("")}</tbody>
@@ -1370,14 +1369,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     `; }
   }
   function exportCsv(){
-    const sch = schedule(), out = [["日期","姓名","分級","出席狀態","應付","已付"]];
+    const sch = schedule(), out = [["日期","姓名","出席狀態","應付","已付"]];
     const STN = { present: "出席", leave: "請假", absent: "缺席" };
     ledgerRows(sch).forEach(r => {
       const rec = (S.att[r.d] && S.att[r.d].records) || {}, pay = payRecs(payKey(r.d));
       const ids = classInfo(r.d).ids;
       players().forEach(m => {
         const going = ids.includes(m.id), self = going && selfSettled(m, r.d);
-        out.push([r.d, m.name, m.cls || "", STN[rec[m.id]] || (going ? "出席" : ""), going ? r.pp : 0, !going ? "" : self ? "免付（財務）" : pay[m.id] ? "已付" : "還沒付"]);
+        out.push([r.d, m.name, STN[rec[m.id]] || (going ? "出席" : ""), going ? r.pp : 0, !going ? "" : self ? "免付（財務）" : pay[m.id] ? "已付" : "還沒付"]);
       });
     });
     const csv = "\ufeff" + out.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
@@ -1398,7 +1397,6 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         return `<li class="row wide"><div class="form">
           <div class="fields">
             <label class="field"><span>姓名</span><input id="editName" value="${v("editName", m.name)}"></label>
-            <label class="field"><span>分級</span><select id="editCls">${CLASSES.map(c => `<option${(d.editCls ?? (m.cls||"未分級"))===c?" selected":""}>${c}</option>`).join("")}</select></label>
             <label class="field"><span>備註</span><input id="editNote" value="${v("editNote", m.note)}"></label>
           </div>
           <div class="actions"><button class="btn primary" data-act="edit-save" data-id="${m.id}">存檔</button><button class="btn" data-act="edit" data-id="">先不要</button></div>
@@ -1417,12 +1415,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     };
     const f = fees(null, nextClassDate(schedule()));
     return `
-      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list pair">${on.map(row).join("")}</ul>${adminHintP("排序：先看分級，同分級再照姓名筆畫。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
+      ${on.length ? `<h3>上課中的隊友（${on.length} 人）</h3><ul class="list pair">${on.map(row).join("")}</ul>${adminHintP("照姓名筆畫排序。")}` : `<div class="empty"><b>名單還是空的</b>${S.canWrite ? "用下面的表單加入第一位隊友吧。" : "請管理員登入後加入隊友。"}</div>`}
       ${!S.canWrite ? "" : `<div class="card">
         <h2>加入新隊友</h2>
         <div class="fields">
           <label class="field"><span>姓名</span><input id="newName" placeholder="例如：陳小美" value="${v("newName")}"${dis()}></label>
-          <label class="field"><span>分級</span><select id="newCls"${dis()}>${CLASSES.map(c => `<option${(d.newCls||"未分級")===c?" selected":""}>${c}</option>`).join("")}</select></label>
           <label class="field"><span>備註（可以不填）</span><input id="newNote" placeholder="例如：運輪放球館" value="${v("newNote")}"${dis()}></label>
         </div>
         <div class="actions"><button class="btn primary" data-act="add"${dis()}>加進名單</button></div>
@@ -1692,7 +1689,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       case "add": {
         const name = document.getElementById("newName").value.trim();
         if(!name){ toast("請先填姓名"); document.getElementById("newName").focus(); break; }
-        const data = { name, role: "player", cls: document.getElementById("newCls").value,
+        const data = { name, role: "player",
           phone: "", note: document.getElementById("newNote").value.trim(),
           active: true, createdAt: Date.now() };
         const newId = "m" + Date.now().toString(36);
@@ -1703,12 +1700,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         render();
         break;
       }
-      case "edit": S.editId = id || null; ["editName","editCls","editNote"].forEach(k => delete S.draft[k]); render(); break;
+      case "edit": S.editId = id || null; ["editName","editNote"].forEach(k => delete S.draft[k]); render(); break;
       case "edit-save": {
         const m = S.members.find(x => x.id === id); if(!m) break;
         const name = document.getElementById("editName").value.trim();
         if(!name){ toast("姓名不能空白喔"); break; }
-        const data = { name, role: "player", cls: document.getElementById("editCls").value,
+        const data = { name, role: "player", cls: m.cls || "",
           phone: m.phone || "", note: document.getElementById("editNote").value.trim(),
           active: m.active !== false, createdAt: m.createdAt || Date.now() };
         S.members = S.members.map(x => x.id === id ? { id, ...data } : x).sort(byClassThenStroke);
