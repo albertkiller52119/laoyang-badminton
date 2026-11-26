@@ -718,8 +718,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 三、其他規則
     const k2 = Math.max(all - 1, 1);
     const other = sec("sheet", "其他規則", `<ul>
-      <li><strong>教練請假：</strong>當天只收場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
-      <li><strong>整班停課：</strong>當週不上課，也不收費。</li>
+      <li><strong>教練請假：</strong>不上教練課，只分攤場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
+      <li><strong>整班停課：</strong>季租場地照常可以用，只是不上教練課；要不要來自主練習，大家自己決定。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
     </ul>`);
     return `<details class="rules rb">
