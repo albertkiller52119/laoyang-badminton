@@ -519,8 +519,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 試算表一更新，網頁就自動跟著改（Set 快取，資料一換就重算）
   let okCache = null, okSrc;
   const okSet = () => { if(S.sheet !== okSrc){ okSrc = S.sheet; okCache = new Set(sheetLeaveKeys()); } return okCache; };
-  const offReason = d => OFF_DATES[d] || (okSet().has(d + "|" + STOP) ? ((sheetDay(d) && sheetDay(d).note) || "停課") : "");
-  const coachOff = d => okSet().has(d + "|" + COFF);
+  // 季租有租到場地的日子：試算表標「停課」只是不上教練課，來自主練習的人分攤場地費
+  const rentedSeason = d => { const x = seasonOf(d); return !!x && d >= SEASON_FROM && x.dates.includes(d); };
+  const practiceDay = d => !OFF_DATES[d] && okSet().has(d + "|" + STOP) && rentedSeason(d);
+  const offReason = d => OFF_DATES[d] || (okSet().has(d + "|" + STOP) && !rentedSeason(d) ? ((sheetDay(d) && sheetDay(d).note) || "停課") : "");
+  const coachOff = d => okSet().has(d + "|" + COFF) || practiceDay(d);
+  const coachOffText = d => practiceDay(d) ? "停課改自主練習，只收場地費" : "教練請假，只收場地費";
   function mergeAtt(){
     const out = { ...(S.rawAtt || {}) };
     const byDate = {};
@@ -561,7 +565,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     ].filter(x => x[1].length).map(([t, ks, f]) => `<div>${t}：${ks.map(f).join("、")}</div>`).join("");
     const dates = [...new Set([...add, ...del].map(k => k.split("|")[0]))].sort();
     const now = d => { if(offReason(d)) return `${md(d)} 停課，不收費`; const ci = classInfo(d);
-      return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${coachOff(d) ? "（教練請假，只收場地費）" : ""}`; };
+      return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${coachOff(d) ? `（${coachOffText(d)}）` : ""}`; };
     return `<div class="sheet-alert" role="status">
       <b class="sa-h">${ic("sheet")} 請假紀錄表有更新</b>
       ${lines}
@@ -719,7 +723,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const k2 = Math.max(all - 1, 1);
     const other = sec("sheet", "其他規則", `<ul>
       <li><strong>教練請假：</strong>不上教練課，只分攤場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
-      <li><strong>整班停課：</strong>季租場地照常可以用，只是不上教練課；要不要來自主練習，大家自己決定。</li>
+      <li><strong>整班停課：</strong>季租場地照常可以用，只是不上教練課；來自主練習的人一起分攤場地費，不來的請在群組說一聲。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
     </ul>`);
     return `<details class="rules rb">
@@ -976,7 +980,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const dl = shiftDate(d, -7);
     const foot = [
       d >= t ? `請假截止 ${mdw(dl)}${t > dl ? "（已過，請假也要分攤）" : ""}` : "",
-      f.coachOff ? "教練請假，只收場地費" : ""].filter(Boolean).join("・");
+      f.coachOff ? coachOffText(d) : ""].filter(Boolean).join("・");
     const rec = (S.att[d] && S.att[d].records) || {}, on = active().filter(m => ci.ids.includes(m.id));
     const nm = a => a.map(m => esc(m.name)).join("、");
     const goL = on.filter(m => rec[m.id] !== "absent"), leaveL = active().filter(m => rec[m.id] === "leave"), absentL = on.filter(m => rec[m.id] === "absent");
@@ -1090,7 +1094,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // ② 吉哥付出去
     const coach = fl.coach > 0
       ? row("coach", "教練費", `${s.coachHours} 小時 × ${num(s.coachRate)}`, money(fl.coach), st(!!fl.coachPaid, "coach", fl.coachPaid))
-      : row("coach", "教練費", "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
+      : row("coach", "教練費", practiceDay(d) ? "停課，不上教練課" : "教練請假，這堂不用付", "—", `<span class="pill">免付</span>`);
     let venue;
     if(fl.pre) venue = row("venue", "場地費", fl.season ? "季租 2 面" : courts, money(fl.venue), `<span class="pill ok">✓ 已匯款</span>`);
     else if(fl.season){ const c = seasonCalc(fl.sz); venue = row("venue", "場地費", `整季 ${c.N} 堂一次匯 ${num(c.total)}`, money(fl.venue), st(fl.venueDone, "spaid", seasonPaid(fl.sz))); }
