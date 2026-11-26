@@ -738,8 +738,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 三、其他規則
     const k2 = Math.max(all - 1, 1);
     const other = sec("sheet", "其他規則", `<ul>
-      <li><strong>教練請假：</strong>不上教練課，只分攤場地費，例如 ${k2} 人上課，每人 ${money(Math.ceil(sv / k2))}。</li>
-      <li><strong>整班停課：</strong>季租場地照常可以用，只是不上教練課；來自主練習的人一起分攤場地費，不來的請在群組說一聲。</li>
+      <li><strong>教練請假或整班停課：</strong>不上教練課，場地照常，來的人分攤場地費（例如 ${k2} 人，每人 ${money(Math.ceil(sv / k2))}）；不來的請在群組說一聲。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
     </ul>`);
     return `<details class="rules rb">
@@ -1221,7 +1220,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <h2>季租場地日期</h2>
       <p class="muted">點日期切換：<b>深色</b>＝上課，<s>淡色</s>＝停課（場地退、不收費）。</p>
       ${SEASONS.map((x, i) => `<div class="sz-ed">
-        <div class="sz-ed-h"><b>${esc(x.name)}</b><span>${md(x.from)}～${md(x.to)}・${x.dates.length} 堂 × ${num(per)}＝${money(x.dates.length * per)}</span></div>
+        <div class="sz-ed-h"><b>${esc(x.name)}</b><span>${x.dates.length ? `${md(x.dates[0])}～${md(x.dates[x.dates.length - 1])}` : `${md(x.from)}～${md(x.to)}`}・${x.dates.length} 堂 × ${num(per)}＝${money(x.dates.length * per)}</span></div>
         <div class="chips">${seasonWeeks(x).map(d => `<button class="dchip" data-act="sz-date" data-date="${d}" aria-pressed="${x.dates.includes(d)}"${d < t ? " disabled" : ""}>${md(d)}</button>`).join("")}</div>
         <div class="actions">${S.szDel === i
           ? `<span class="muted">整季刪掉，這一季的日期都會不見，確定嗎？</span><button class="btn small danger" data-act="sz-del" data-i="${i}">確定刪除</button><button class="btn small" data-act="sz-del-ask" data-i="">先不要</button>`
