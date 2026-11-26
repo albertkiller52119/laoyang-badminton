@@ -357,9 +357,13 @@ details.sec[open]>summary::after{content:"▴"}
 .po-st{margin-top:4px}
 .po-what b{white-space:nowrap}
 .po-amt{white-space:nowrap;font-size:min(1.2rem,5.6vw)}
-.sz-top b{white-space:nowrap;font-size:min(1.3rem,6vw)}
-.sz-top>div{min-width:0}
-.next .nx-s b{white-space:nowrap;font-size:min(1.15rem,5.2vw)}
+.sz-top b{white-space:nowrap;font-size:min(1.3rem,6vw);font-size:min(1.3rem,6vw,18cqi)}
+.sz-top b .cur,.next .nx-s b .cur{font-style:normal}
+.sz-top b .cur{font-size:.72em;margin-right:1px}
+.sz-top>div{min-width:0;container-type:inline-size;overflow:hidden}
+.next .nx-s b{white-space:nowrap;font-size:min(1.15rem,5.2vw);font-size:min(1.15rem,5.2vw,26cqi)}
+.next .nx-s>div{min-width:0;container-type:inline-size;overflow:hidden}
+.next .nx-s b .cur{font-size:.72em;margin-right:1px}
 .next .picker .pk-d{white-space:nowrap;font-size:min(1.2rem,6vw)}
 .next .picker .pk-d i{font-style:normal;font-size:.72em;opacity:.85}
 .btn.block{width:100%;justify-content:center}
@@ -1004,7 +1008,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">這堂停課（場地也退）</button></div>` : "";
     return box("", `<div class="nx-s">
         <div><span>${ic("people")}上課</span><b>${ci.n} 人</b></div>
-        <div><span>${ic("coin")}每人</span><b>${money(ci.pp)}</b></div>
+        <div><span>${ic("coin")}每人</span><b>${money(ci.pp).replace("NT$", '<i class="cur">NT$</i>')}</b></div>
         <div><span>${ic("court")}場地</span><b>${f.two ? 2 : 1} 面</b></div>
       </div>
       ${who}
@@ -1326,7 +1330,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return `<div class="card season">
       <h2>季租場地<small>${esc(x.name)}</small></h2>
       <div class="sz-top">
-        <div><span>${paid ? "✓ 已付館方" : "還沒付館方"}</span><b>${money(total)}</b><small>${N} 堂 × ${num(per)}</small></div>
+        <div><span>${paid ? "✓ 已付館方" : "還沒付館方"}</span><b>${money(total).replace("NT$", '<i class="cur">NT$</i>')}</b><small>${N} 堂 × ${num(per)}</small></div>
         <div><span>上課進度</span><b>${done + paused}／${N} 堂</b><small>${started ? `還有 ${N - done - paused} 堂` : `${md(ds[0] || x.from)}～${md(ds[ds.length - 1] || x.to)}`}</small></div>
       </div>
       ${auto ? "" : `<div class="sz-paid ${paid ? "ok" : "bad"}">${paid ? `✓ 季租已匯給館方（${md(paid.date)}・${esc(paid.method || "")}）` : "季租還沒匯給館方"}${S.canWrite && !auto ? ` <button class="link" data-act="spaid-${paid ? "undo" : "save"}" data-date="${liveDates(x)[0] || x.from}">${paid ? "取消紀錄" : "記下已匯款"}</button>` : ""}</div>`}
