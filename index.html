@@ -359,6 +359,7 @@ details.sec[open]>summary::after{content:"▴"}
 .po-amt{white-space:nowrap;font-size:min(1.2rem,5.6vw)}
 .sz-top b{white-space:nowrap;font-size:min(1.3rem,6vw);font-size:min(1.3rem,6vw,18cqi)}
 .sz-top b .cur,.next .nx-s b .cur{font-style:normal}
+.sz-top small{white-space:nowrap;font-size:min(.8rem,4vw);font-size:min(.8rem,4vw,14cqi)}
 .sz-top b .cur{font-size:.72em;margin-right:1px}
 .sz-top>div{min-width:0;container-type:inline-size;overflow:hidden}
 .next .nx-s b{white-space:nowrap;font-size:min(1.15rem,5.2vw);font-size:min(1.15rem,5.2vw,26cqi)}
@@ -904,7 +905,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function render(){
     const s = S.settings;
     document.getElementById("groupName").textContent = s.group || "輪椅羽球點名簿";
-    document.getElementById("groupSub").textContent = [s.location, (s.time || "").replace(/（[^）]*）|\([^)]*\)/g, "").trim()].filter(Boolean).join("・") || "輪椅羽球點名簿";
+    document.getElementById("groupSub").textContent = [s.location, (s.time || "").replace(/（[^）]*）|\([^)]*\)/g, "").trim()].filter(Boolean).join("・").replace(/(\d)\s*[–—-]\s*(\d)/g, "$1–⁠$2") || "輪椅羽球點名簿";
     if(!S.canWrite && S.tab === "members") S.tab = "checkin";
     document.querySelectorAll(".tabs button").forEach(b => {
       const k = b.dataset.tab;
