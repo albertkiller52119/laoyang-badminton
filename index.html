@@ -313,6 +313,9 @@ body{font-variant-numeric:tabular-nums}
 .next .nx-who p{margin:0;font-size:.95rem;line-height:1.6;display:grid;grid-template-columns:auto 1fr;align-items:baseline}
 .next .nx-who b{font-size:.8rem;opacity:.75;margin-right:8px;font-weight:700}
 .next .nx-f{font-size:.88rem;opacity:.9;display:flex;gap:6px;align-items:center}
+.next .nx-pr{display:grid;grid-template-columns:auto 1fr;align-items:baseline;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.08);font-size:.92rem;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
+.next .nx-pr b{font-size:.8rem;opacity:.75;margin-right:8px}
+.next .nx-warn{padding:8px 12px;border-radius:12px;background:#fff3cd;color:#7a5200;font-size:.92rem;font-weight:700;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere}
 .next.off{background:var(--surface-2,#eef3f5);color:var(--fg)}
 .fold{margin:10px 0}
 .fold>summary{cursor:pointer;font-weight:800;padding:10px 0;color:var(--muted);list-style:none}
@@ -463,7 +466,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 (function(){
   const CLASSES = ["WH1","WH2","SL3","SL4","SU5","SH6","未分級"];
   const METHODS = ["現金","LINE Pay"];
-  const ST = {present:"出席", leave:"請假", absent:"缺席"};
+  const ST = {present:"出席", leave:"請假", absent:"缺席", practice:"不訓"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-12",
     coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:6,
     venuePayer:"", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", bookerNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
@@ -519,6 +522,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       const m = (r[di] || "").trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/); if(!m) return;
       dates[`${m[1]}-${pad(m[2])}-${pad(m[3])}`] = {
         leave: names.filter(([c]) => (r[c] || "").includes("請假")).map(([, n]) => n),
+        practice: names.filter(([c]) => (r[c] || "").includes("不訓")).map(([, n]) => n),
         paid: names.filter(([c]) => /已付|已繳|付清/.test(r[c] || "")).map(([, n]) => n),
         stop: si >= 0 && yes(r[si]), coachOff: ci >= 0 && yes(r[ci]), note: ni >= 0 ? (r[ni] || "").trim() : "" };
     });
@@ -528,10 +532,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const sheetDay = d => (S.sheet && S.sheet.dates[d]) || null;
   const memberByName = n => players().find(m => m.name === n) || null;
   const sheetUnknown = () => S.sheet ? S.sheet.names.filter(n => !memberByName(n)) : [];
-  const STOP = "#停課", COFF = "#教練請假";
-  // 請假紀錄表上目前所有的請假、停課、教練請假（日期|名字、日期|#停課、日期|#教練請假）
+  const STOP = "#停課", COFF = "#教練請假", PRAC = "~";
+  // 請假紀錄表上目前所有的請假、不訓、停課、教練請假（日期|名字、日期|~名字、日期|#停課、日期|#教練請假）
   const sheetLeaveKeys = () => { const out = []; if(S.sheet) Object.entries(S.sheet.dates).forEach(([d, x]) => {
-    x.leave.forEach(n => out.push(d + "|" + n)); if(x.stop) out.push(d + "|" + STOP); if(x.coachOff) out.push(d + "|" + COFF); }); return out.sort(); };
+    x.leave.forEach(n => out.push(d + "|" + n)); (x.practice || []).forEach(n => out.push(d + "|" + PRAC + n)); if(x.stop) out.push(d + "|" + STOP); if(x.coachOff) out.push(d + "|" + COFF); }); return out.sort(); };
   // 試算表一更新，網頁就自動跟著改（Set 快取，資料一換就重算）
   let okCache = null, okSrc;
   const okSet = () => { if(S.sheet !== okSrc){ okSrc = S.sheet; okCache = new Set(sheetLeaveKeys()); } return okCache; };
@@ -547,8 +551,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     sheetLeaveKeys().forEach(k => { const [d, n] = k.split("|"); if(n[0] !== "#") (byDate[d] = byDate[d] || []).push(n); });
     if(S.sheet) Object.keys(S.sheet.dates).forEach(d => {
       const rec = {};
-      Object.entries((out[d] && out[d].records) || {}).forEach(([id, v]) => { if(v !== "leave") rec[id] = v; });
-      (byDate[d] || []).forEach(n => { const m = memberByName(n); if(m) rec[m.id] = "leave"; });
+      Object.entries((out[d] && out[d].records) || {}).forEach(([id, v]) => { if(v !== "leave" && v !== "practice") rec[id] = v; });
+      (byDate[d] || []).forEach(n => { const p = n[0] === PRAC, m = memberByName(p ? n.slice(1) : n); if(m) rec[m.id] = p ? "practice" : "leave"; });
       if(!out[d] && !Object.keys(rec).length) return;   // 沒有紀錄的日期不用建
       const doc = { date: d, records: rec };
       if(Object.values(rec).includes("leave")) doc.mode = "single";
@@ -571,17 +575,18 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function sheetAlert(){
     const { add, del } = sheetChanges();
     if(!add.length && !del.length) return "";
-    const fmt = k => { const [d, n] = k.split("|"); return `<b>${md(d)}</b> ${esc(n)}`; };
+    const fmt = k => { const [d, n] = k.split("|"); return `<b>${md(d)}</b> ${esc(n[0] === PRAC ? n.slice(1) : n)}`; };
     const fmtD = k => `<b>${md(k.split("|")[0])}</b>`;
-    const isL = k => k.split("|")[1][0] !== "#", is = t => k => k.endsWith("|" + t);
+    const isL = k => !"#~".includes(k.split("|")[1][0]), isP = k => k.split("|")[1][0] === PRAC, is = t => k => k.endsWith("|" + t);
     const lines = [
       ["新增請假", add.filter(isL), fmt], ["取消請假", del.filter(isL), fmt],
+      ["不訓（只打球）", add.filter(isP), fmt], ["取消不訓", del.filter(isP), fmt],
       ["停課", add.filter(is(STOP)), fmtD], ["取消停課", del.filter(is(STOP)), fmtD],
       ["教練請假", add.filter(is(COFF)), fmtD], ["取消教練請假", del.filter(is(COFF)), fmtD]
     ].filter(x => x[1].length).map(([t, ks, f]) => `<div>${t}：${ks.map(f).join("、")}</div>`).join("");
     const dates = [...new Set([...add, ...del].map(k => k.split("|")[0]))].sort();
     const now = d => { if(offReason(d)) return `${md(d)} 停課，不收費`; const ci = classInfo(d);
-      return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${coachOff(d) ? `（${coachOffText(d)}）` : ""}`; };
+      return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${ci.k ? `，不訓 ${ci.k} 人、每人 ${money(ci.pv)}` : ""}${coachOff(d) ? `（${coachOffText(d)}）` : few(d, ci) ? "（上課少於 4 人，要討論是否停課）" : ""}`; };
     return `<div class="sheet-alert" role="status">
       <b class="sa-h">${ic("sheet")} 請假紀錄表有更新</b>
       ${lines}
@@ -590,7 +595,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     </div>`;
   }
   // 寫回雲端時，試算表管的日期不存請假（以試算表為準）
-  const cloudDoc = doc => !sheetDay(doc.date) ? doc : { date: doc.date, records: Object.fromEntries(Object.entries(doc.records || {}).filter(([, v]) => v !== "leave")) };
+  const cloudDoc = doc => !sheetDay(doc.date) ? doc : { date: doc.date, records: Object.fromEntries(Object.entries(doc.records || {}).filter(([, v]) => v !== "leave" && v !== "practice")) };
   const seasonOff = d => { if(offReason(d)) return true; const x = seasonOf(d); return !!x && d >= SEASON_FROM && !x.dates.includes(d); };
 
   const pad = n => String(n).padStart(2,"0");
@@ -683,7 +688,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     <b>請假規則</b>
     <ul class="rule-list">
       <li><strong>群組告知：</strong>請在 Line 群組說一聲，我們會登記在「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」，這裡也會一併更新。</li>
-      <li><strong>事先請假：</strong>最晚請提前一週告知，當堂費用由實際出席的人平均分攤。若當天上課人數少於 4 人，則由大家討論是否停課。</li>
+      <li><strong>事先請假：</strong>最晚請提前一週告知，當堂費用由實際出席的人平均分攤。若當天上課人數少於 4 人（不訓不算），則由大家討論是否停課。</li>
+      <li><strong>不訓：</strong>只來打球、不上教練課，也請在群組說一聲，請假紀錄表會登記「不訓」，只分攤場地費。</li>
       <li><strong>未請假缺席：</strong>課程照常進行，缺席者仍須分攤當堂課程費用。</li>
     </ul>
     ${S.canWrite && sheetUnknown().length ? `<p class="muted"><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）</p>` : ""}
@@ -724,7 +730,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 二、每堂怎麼算：季租前逐堂（每堂總費用），季租後固定 2 面＋人數對照
     const t = today();
     const preDays = Object.keys(COURT_FIX).filter(d => d < SEASON_FROM && d >= S.settings.start && d >= t && !offReason(d)).sort();
-    const preRow = d => { const fx = fees(classInfo(d).n, d); return `<tr><td>${md(d)}</td><td>${fx.two ? 2 : 1} 面</td><td>${money(fx.session)}</td></tr>`; };
+    const preRow = d => { const fx = classInfo(d).f; return `<tr><td>${md(d)}</td><td>${fx.two ? 2 : 1} 面</td><td>${money(fx.session)}</td></tr>`; };
     const ks = []; for(let k = all; k >= 4 && ks.length < 6; k--) ks.push(k);
     const each = sec("court", "每堂怎麼算？", `<ul>
       <li><strong>每堂 ${s.venueHours} 小時：</strong>教練課 ${s.coachHours} 小時${s.venueHours > s.coachHours ? `＋自主練習 ${s.venueHours - s.coachHours} 小時` : ""}。</li>
@@ -736,8 +742,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     ${ks.length ? `<table class="rb-t"><thead><tr><th>上課人數</th><th>每人費用</th></tr></thead><tbody>${ks.map(k => `<tr><td>${k} 人</td><td>${money(Math.ceil(per / k))}</td></tr>`).join("")}</tbody></table>
     <p class="rb-p">人越少，每人分攤就越多，要請假記得早點在群組說喔！</p>` : ""}`);
     // 三、其他規則
-    const k2 = Math.max(all - 1, 1);
+    const k2 = Math.max(all - 1, 1), pa = Math.max(all - 1, 1), pvx = Math.ceil(sv / all), ppx = Math.ceil((per - pvx) / pa);
     const other = sec("sheet", "其他規則", `<ul>
+      <li><strong>不訓（只打球）：</strong>場地費由當天下場的人平分，教練費由上課的人分攤（例如 ${pa} 人上課＋1 人不訓：不訓 ${money(pvx)}、上課每人 ${money(ppx)}）。</li>
       <li><strong>教練請假或整班停課：</strong>不上教練課，場地照常，來的人分攤場地費（例如 ${k2} 人，每人 ${money(Math.ceil(sv / k2))}）；不來的請在群組說一聲。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
     </ul>`);
@@ -770,19 +777,27 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   const billable = st => st !== "paused";
   // 這堂要分攤的人：沒請假的學員（整班暫停就沒有人要付）
+  // 不訓＝只打球、不上教練課：場地費由下場的人（含不訓）平分，教練費由上課的人分攤
   function classInfo(d){
     const st = statusOf(d);
     const r = (S.att[d] && S.att[d].records) || {};
     const ids = billable(st) ? players().filter(m => r[m.id] !== "leave").map(m => m.id) : [];
-    const n = ids.length;
-    return { st, ids, n, pp: n ? Math.ceil(fees(n, d).session / n) : 0 };
+    const prac = ids.filter(id => r[id] === "practice"), n = ids.length - prac.length, k = prac.length;
+    const f = { ...fees(n + k, d) };
+    if(!n){ f.coach = 0; f.session = f.venue; }
+    const pv = k ? Math.ceil(f.venue / (n + k)) : 0;
+    const pp = n ? Math.ceil((f.session - k * pv) / n) : 0;
+    f.n = n; f.pp = pp;
+    return { st, ids, prac, n, k, pp, pv, f, total: n * pp + k * pv, amt: id => prac.includes(id) ? pv : pp };
   }
+  // 上課（不含不訓）少於 4 人：提醒大家討論要不要停課
+  const few = (d, ci) => ci.n > 0 && ci.n < 4 && !coachOff(d);
   const leaveCount = d => players().filter(m => ((S.att[d] && S.att[d].records) || {})[m.id] === "leave").length;
   const payKey = d => "class-" + d;
   // 繳費紀錄：網頁記的＋試算表名字格填「已付」的（試算表的只讀）
   function payRecs(key){
     const out = { ...((S.pay[key] || {}).records || {}) }, x = sheetDay(key.slice(6));
-    if(x && x.paid) x.paid.forEach(n => { const m = memberByName(n); if(m && !out[m.id]) out[m.id] = { amount: classInfo(key.slice(6)).pp, date: key.slice(6), method: "試算表", sheet: true }; });
+    if(x && x.paid) x.paid.forEach(n => { const m = memberByName(n); if(m && !out[m.id]) out[m.id] = { amount: classInfo(key.slice(6)).amt(m.id), date: key.slice(6), method: "試算表", sheet: true }; });
     return out;
   }
   const paidRec = (d, id) => payRecs(payKey(d))[id];
@@ -793,7 +808,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   // 這堂的錢怎麼走：訂場地的人先付場地費，他的課費從裡面扣，差額由財務匯還（或由他補給財務）
   function flowOf(d){
-    const ci = classInfo(d), f = fees(ci.n, d);
+    const ci = classInfo(d), f = ci.f;
     const tr = treasurerOf();
     const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || null;   // 財務付給教練的紀錄
     const venuePaid = (S.pay[payKey(d)] || {}).venuePaid || null;   // 場地負責人付給館方的紀錄
@@ -944,6 +959,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(nd < S.settings.start) next = { cls: "mute", big: "還沒開課", note: `第一堂 ${md(S.settings.start)}` };
     else if(offReason(nd) || seasonOff(nd) || ci.st === "paused") next = { cls: "mute", big: "停課", note: "這週不用付" };
     else if(rec === "leave") next = { cls: "mute", big: "已請假", note: "這堂不用付" };
+    else if(rec === "practice" && !isTreasurer(m) && !paidRec(nd, m.id)) next = { cls: "", big: money(oweAmount(m, nd)), note: `不訓，只分攤場地費・${how}` };
     else if(isTreasurer(m)) next = { cls: "mute", big: "不用付", note: "你負責收錢，自己那份不用付" };
     else if(paidRec(nd, m.id)) next = { cls: "ok", big: "✓ 已付", note: money(oweAmount(m, nd)) };
     else next = { cls: "", big: money(oweAmount(m, nd)), note: how };
@@ -990,7 +1006,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(seasonOff(d) && statusOf(d) === "planned") return box("off", msg("停課：這天沒租場地，不上課、不收費"),
       S.canWrite && d >= t ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">恢復這堂（有租場地）</button></div>` : "");
     if(d < S.settings.start) return box("off", msg(`還沒開課，第一堂是 ${md(S.settings.start)}`));
-    const ci = classInfo(d), f = fees(ci.n, d), lv = leaversOf(d);
+    const ci = classInfo(d), f = ci.f, lv = leaversOf(d);
     if(ci.st === "paused") return box("off", msg(`停課：${esc(lv.join("、"))} 請假，這週不上課、不收費`), modeSwitch("paused"));
     const dl = shiftDate(d, -7);
     const foot = [
@@ -998,7 +1014,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       f.coachOff ? coachOffText(d) : ""].filter(Boolean).join("・");
     const rec = (S.att[d] && S.att[d].records) || {}, on = active().filter(m => ci.ids.includes(m.id));
     const nm = a => a.map(m => esc(m.name)).join("、");
-    const goL = on.filter(m => rec[m.id] !== "absent"), leaveL = active().filter(m => rec[m.id] === "leave"), absentL = on.filter(m => rec[m.id] === "absent");
+    const pracL = on.filter(m => rec[m.id] === "practice");
+    const goL = on.filter(m => rec[m.id] !== "absent" && rec[m.id] !== "practice"), leaveL = active().filter(m => rec[m.id] === "leave"), absentL = on.filter(m => rec[m.id] === "absent");
+    const pracLine = ci.k ? `<div class="nx-pr"><b>不訓</b><span>${nm(pracL)}：不上教練課，只分攤場地費 ${money(ci.pv)}</span></div>` : "";
+    const fewLine = few(d, ci) && d >= t ? `<div class="nx-warn">上課只有 ${ci.n} 人（不訓不算），少於 4 人，請大家討論要不要停課</div>` : "";
     const who = where === "checkin" && !(S.canWrite && d <= t) ? `<div class="nx-who">
         <p><b>${d <= t ? "出席" : "上課"}</b>${nm(goL) || "－"}</p>
         ${leaveL.length ? `<p><b>請假</b>${nm(leaveL)}</p>` : ""}
@@ -1011,7 +1030,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div><span>${ic("coin")}每人</span><b>${money(ci.pp).replace("NT$", '<i class="cur">NT$</i>')}</b></div>
         <div><span>${ic("court")}場地</span><b>${f.two ? 2 : 1} 面</b></div>
       </div>
-      ${who}
+      ${fewLine}${pracLine}${who}
       <div class="nx-f">${ic("clock")}<span>${foot}</span></div>`, (ci.st === "single" ? modeSwitch("single") : "") + szCancel);
   }
 
@@ -1036,9 +1055,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
-          <div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
+          ${s === "practice" ? `<span class="pill" title="請假紀錄表登記不訓">不訓・只打球</span>` : `<div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
             ${["present","leave","absent"].map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
-          </div></li>`;
+          </div>`}</li>`;
       }).join("") + `</ul>
       <p class="muted">沒請假就算出席，只標缺席的人；點完按下方「確認儲存」。</p>
       ${leaveBox()}`}`;
@@ -1055,7 +1074,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       ${meCard(sch)}`;
     if(!players().length) return h + noMembers();
     const offWhy = offReason(d) || (seasonOff(d) ? "這天沒租場地" : "");
-    if(!offWhy && ci.n && d >= S.settings.start){
+    if(!offWhy && ci.ids.length && d >= S.settings.start){
       const fl = flowOf(d);
       const who = players().filter(m => ci.ids.includes(m.id));
       const mustPay = who.filter(m => !selfSettled(m, d));
@@ -1080,8 +1099,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 
   // 某人這堂要繳多少（訂場地的人如果課費比場地費多，只要補差額）
   function oweAmount(m, d){
-    const fl = flowOf(d);
-    return fl.ci.pp;
+    return classInfo(d).amt(m.id);
   }
 
   // 這堂的錢怎麼走
@@ -1089,9 +1107,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function moneyCard(d, fl, paidN, mustN, listHtml = ""){
     if(!fl.tr) return "";
     const tr = esc(trName()), cn = esc(S.settings.coachNick || "教練"), s = S.settings;
-    const num = x => Number(x).toLocaleString("en-US"), cf = fees(fl.ci.n, d), pp = fl.ci.pp, n = fl.ci.n, lv = leaveCount(d);
+    const num = x => Number(x).toLocaleString("en-US"), cf = fl.ci.f, pp = fl.ci.pp, n = fl.ci.n, lv = leaveCount(d);
     const trIn = fl.ci.ids.includes(fl.tr.id);
-    const got = n * pp, out = fl.coach + fl.venue, left = got - out, due = (fl.coachPaid ? 0 : fl.coach) + (fl.venueDone ? 0 : fl.venue);
+    const got = fl.ci.total, out = fl.coach + fl.venue, left = got - out, due = (fl.coachPaid ? 0 : fl.coach) + (fl.venueDone ? 0 : fl.venue);
     const early = d > today();
     const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 已匯款" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "還沒匯款" : early ? "待付" : "還沒付", cls = ok ? "ok" : early && !sea ? "wait" : "bad"; return S.canWrite
       ? `<button class="pill tap ${cls}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${ok ? yes : sea ? "記已匯款" : "記已付"}</button>`
@@ -1103,8 +1121,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const courts = `${cf.two ? 2 : 1} 面 × ${s.venueHours} 小時 × ${num(cf.two ? s.venueRate2 : s.venueRate)}`;
 
     // ① 隊友轉帳
-    const payers = fl.ci.ids.filter(id => id !== fl.tr.id).length;
-    const share = row("class", `<span class="po-no">1</span>大家付給${tr}`, `${payers} 人 × ${money(pp)}${trIn ? `＋${tr}自己那份` : ""}`, money(got),
+    const oth = fl.ci.ids.filter(id => id !== fl.tr.id), pk = oth.filter(id => fl.ci.prac.includes(id)).length, payers = oth.length - pk;
+    const share = row("class", `<span class="po-no">1</span>大家付給${tr}`, `${payers ? `${payers} 人 × ${money(pp)}` : ""}${pk ? `${payers ? "＋" : ""}不訓 ${pk} 人 × ${money(fl.ci.pv)}` : ""}${trIn ? `＋${tr}自己那份` : ""}`, money(got),
       `<span class="pill ${paidN >= mustN ? "ok" : early ? "wait" : "bad"}">已付 ${paidN}／${mustN} 人</span>`);
     // ② 吉哥付出去
     const coach = fl.coach > 0
@@ -1358,13 +1376,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function ledgerRows(sch){
     const t = today();
     return sch.filter(i => i.date >= S.settings.start && billable(i.status) && (i.date <= t || S.pay[payKey(i.date)]))
-      .map(i => { const d = i.date, ci = classInfo(d); if(!ci.n) return null;
-        const fl = flowOf(d), f = fees(ci.n, d), rec = payRecs(payKey(d));
+      .map(i => { const d = i.date, ci = classInfo(d); if(!ci.ids.length) return null;
+        const fl = flowOf(d), f = ci.f, rec = payRecs(payKey(d));
         const must = players().filter(m => ci.ids.includes(m.id) && !selfSettled(m, d));
-        const due = must.length * ci.pp, got = must.reduce((a, m) => a + (rec[m.id] ? Number(rec[m.id].amount || ci.pp) : 0), 0);
-        return { d, n: ci.n, pp: ci.pp, due, got, left: must.filter(m => !rec[m.id]).length,
+        const due = must.reduce((a, m) => a + ci.amt(m.id), 0), got = must.reduce((a, m) => a + (rec[m.id] ? Number(rec[m.id].amount || ci.amt(m.id)) : 0), 0);
+        return { d, n: ci.n, k: ci.k, pp: ci.pp, amt: ci.amt, due, got, left: must.filter(m => !rec[m.id]).length,
           venue: f.venue, venueDone: fl.venueDone, season: fl.season, coach: f.coach, coachDone: !!fl.coachPaid || !f.coach,
-          extra: ci.pp * ci.n - f.session };
+          extra: ci.total - f.session };
       }).filter(Boolean);
   }
   function ledgerCard(sch){
@@ -1380,7 +1398,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     function ledgerInner(){ return `
       <div class="tablewrap"><table class="ledger">
         <thead><tr><th>日期</th><th class="num c-class" data-cat="class">隊友繳費</th><th class="num c-venue" data-cat="venue">付館方</th><th class="num c-coach" data-cat="coach">付${cn}</th></tr></thead>
-        <tbody>${rows.map(r => `<tr><td><b>${md(r.d)}</b><small>${r.n} 人</small></td><td class="num ${r.left ? "bad" : "ok"}">${r.left ? num(r.got) : "✓ " + num(r.got)}<small>${r.left ? `差 ${r.left} 人` : "全部已付"}</small></td>${r.season ? `<td class="num ${r.venueDone ? "ok" : "bad"}">${r.venueDone ? "✓ " : ""}${num(r.venue)}<small>${prepaid(r.d) ? "季租・已先付" : r.venueDone ? "季租已付" : "季租還沒付"}</small></td>` : ok(r.venueDone, num(r.venue))}${r.coach ? ok(r.coachDone, num(r.coach)) : `<td class="num muted">—<small>教練請假</small></td>`}</tr>`).join("")}</tbody>
+        <tbody>${rows.map(r => `<tr><td><b>${md(r.d)}</b><small>${r.n} 人${r.k ? `＋不訓 ${r.k}` : ""}</small></td><td class="num ${r.left ? "bad" : "ok"}">${r.left ? num(r.got) : "✓ " + num(r.got)}<small>${r.left ? `差 ${r.left} 人` : "全部已付"}</small></td>${r.season ? `<td class="num ${r.venueDone ? "ok" : "bad"}">${r.venueDone ? "✓ " : ""}${num(r.venue)}<small>${prepaid(r.d) ? "季租・已先付" : r.venueDone ? "季租已付" : "季租還沒付"}</small></td>` : ok(r.venueDone, num(r.venue))}${r.coach ? ok(r.coachDone, num(r.coach)) : `<td class="num muted">—<small>教練請假</small></td>`}</tr>`).join("")}</tbody>
       </table></div>
       <table class="calc">
         <tr><td>隊友應付給${tr}</td><td></td><td>${money(sum("due"))}</td></tr>
@@ -1394,13 +1412,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   }
   function exportCsv(){
     const sch = schedule(), out = [["日期","姓名","出席狀態","應付","已付"]];
-    const STN = { present: "出席", leave: "請假", absent: "缺席" };
+    const STN = { present: "出席", leave: "請假", absent: "缺席", practice: "不訓" };
     ledgerRows(sch).forEach(r => {
       const rec = (S.att[r.d] && S.att[r.d].records) || {}, pay = payRecs(payKey(r.d));
       const ids = classInfo(r.d).ids;
       players().forEach(m => {
         const going = ids.includes(m.id), self = going && selfSettled(m, r.d);
-        out.push([r.d, m.name, STN[rec[m.id]] || (going ? "出席" : ""), going ? r.pp : 0, !going ? "" : self ? "免付（財務）" : pay[m.id] ? "已付" : "還沒付"]);
+        out.push([r.d, m.name, STN[rec[m.id]] || (going ? "出席" : ""), going ? r.amt(m.id) : 0, !going ? "" : self ? "免付（財務）" : pay[m.id] ? "已付" : "還沒付"]);
       });
     });
     const csv = "\ufeff" + out.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
@@ -1680,11 +1698,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           const d = b.dataset.date, fl = flowOf(d), ci = fl.ci;
           const rec = payRecs(payKey(d));
           const unpaid = players().filter(m => ci.ids.includes(m.id) && !rec[m.id] && !selfSettled(m, d)).map(m => m.name);
-          const leave = leaversOf(d);
+          const leave = leaversOf(d), prac = ci.prac.map(nameOf), cf = ci.f;
           text = `🏸【${S.settings.group}】${labelDate(d)} 課費\n` +
-            (leave.length ? `${leave.join("、")} 請假，其他 ${ci.n} 位照常上課。\n` : "") +
-            `一堂 ${money(fees(ci.n, d).session)}（${courtLabel(fees(ci.n, d))}），${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
-            (treasurerOf() ? `👉 請把 ${money(ci.pp)} 付給 ${tr}${info}。\n` : "") +
+            (leave.length || prac.length ? `${[leave.length ? `${leave.join("、")} 請假` : "", prac.length ? `${prac.join("、")} 不訓（只打球）` : ""].filter(Boolean).join("，")}，其他 ${ci.n} 位照常上課。\n` : "") +
+            (ci.k
+              ? `一堂 ${money(cf.session)}（${courtLabel(cf)}）：場地 ${money(cf.venue)} 由下場的 ${ci.n + ci.k} 位平分${cf.coach ? `，教練 ${money(cf.coach)} 由上課的 ${ci.n} 位分攤` : ""}。\n上課每人 ${money(ci.pp)}，不訓每人 ${money(ci.pv)}。\n` +
+                (treasurerOf() ? `👉 請把課費付給 ${tr}${info}。\n` : "")
+              : `一堂 ${money(cf.session)}（${courtLabel(cf)}），${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
+                (treasurerOf() ? `👉 請把 ${money(ci.pp)} 付給 ${tr}${info}。\n` : "")) +
             (treasurerOf() ? (fl.pre ? `場地費 ${money(fl.venue)}${S.settings.bookerNick ? `（${S.settings.bookerNick}租借）` : ""}${tr} 已匯款給館方，${fl.coach ? `${tr} 收齊後付教練費 ${money(fl.coach)}` : "這堂教練請假，不用付教練費"}。\n` :`${tr} 收齊後付教練費 ${money(fl.coach)}${fl.coach ? "" : "（教練請假）"}、場地費 ${money(fl.venue)}${fl.season ? "（季租）" : ""}。\n`) : "") +
             (unpaid.length ? `還沒付的：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家都已付，謝謝大家！`);
         } else if(act === "copy-season"){
