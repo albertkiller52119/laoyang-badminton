@@ -540,7 +540,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const h = rows[hi].map(x => x.trim()), di = h.indexOf("日期"), col = k => h.indexOf(k);
     const names = []; for(let c = di + 1; c < h.length && h[c]; c++) names.push([c, h[c]]);
     const ci = col("教練請假"), si = col("停課"), ni = col("備註"), cti = col("面數"), yes = x => /是|停|請假|v|✓|ˇ/i.test(x || "");
-    const late = x => /臨假|臨時/.test(x || ""), gi = col("給教費");
+    const late = x => /臨假|臨時/.test(x || ""), gi = col("給教費"), vi = col("給場費");
     const num = k => { const i = col(k); return i < 0 ? null : r => { const v = parseInt(String(r[i] || "").replace(/[,，s]/g, ""), 10); return isNaN(v) ? null : v; }; };
     const nT = num("訓練人數"), nV = num("場費人數"), pV = num("每人場費"), pC = num("每人教費");
     const dates = {};
@@ -556,6 +556,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         courts: cti >= 0 ? (parseInt(r[cti], 10) || 0) : 0,
         // 給教費（P 欄）註記付給教練的日期
         coachPaid: gi >= 0 && /是|已|v|✓|ˇ|[1-9]/i.test(r[gi] || ""), coachPaidOn: gi >= 0 ? cellDate(r[gi]) : "",
+        // 給場費（新增欄）註記建民付給館方的日期
+        venuePaid: vi >= 0 && /是|已|v|✓|ˇ|TRUE|[1-9]/i.test(r[vi] || ""), venuePaidOn: vi >= 0 ? cellDate(r[vi]) : "",
         // 試算表公式算好的人數和每人金額（網頁人數一樣時，金額照試算表）
         nTrain: nT && nT(r), nVenue: nV && nV(r), pv: pV && pV(r), pc: pC && pC(r),
         stop: si >= 0 && yes(r[si]), coachOff: ci >= 0 && yes(r[ci]), note: ni >= 0 ? (r[ni] || "").trim() : "" };
@@ -726,7 +728,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
   // 吉哥已先付清的場地費：12 月（季租前）＋ 1～3 月季租
-  const paidTo = () => [BOOKED_TO, VENUE_PREPAID_TO].filter(Boolean).sort().pop() || "";   // 場地訂好就是付清了（芳玉訂場地時付款）
+  const paidTo = () => "";   // 訂好場地不等於付了：付館方一堂一堂記（網頁按鈕或試算表「給場費」欄）
   const prepaid = d => !!d && !!paidTo() && d >= FIRST_DAY && d <= paidTo() && !offReason(d);
   const seasonPaid = x => x.paid || (VENUE_PREPAID_TO && x.from >= FIRST_DAY && x.to <= VENUE_PREPAID_TO ? { date: "", method: "已先付清" } : null);
   const prepaidDates = () => [...Object.keys(COURT_FIX).filter(d => d < SEASON_FROM), ...SEASONS.filter(x => seasonPaid(x) && !x.paid).flatMap(liveDates)].filter(prepaid).sort();
@@ -885,7 +887,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const ci = classInfo(d), f = ci.f;
     const tr = treasurerOf();
     const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || (sheetDay(d) && sheetDay(d).coachPaid ? { date: fullDate(sheetDay(d).coachPaidOn, d), method: "試算表", sheet: true } : null);   // 財務付給教練的紀錄（試算表「給教費」有填也算）
-    const venuePaid = (S.pay[payKey(d)] || {}).venuePaid || null;   // 場地負責人付給館方的紀錄
+    const venuePaid = (S.pay[payKey(d)] || {}).venuePaid || (sheetDay(d) && sheetDay(d).venuePaid ? { date: fullDate(sheetDay(d).venuePaidOn, d), method: "試算表", sheet: true } : null);   // 付給館方的紀錄（試算表「給場費」有填也算）
     const sz = f.season ? seasonOf(d) : null, inSeason = !!sz;
     const pre = prepaid(d);
     const venueDone = pre || (inSeason ? !!seasonPaid(sz) : !!venuePaid);   // 季租看整季付了沒，季租前看這堂
@@ -1190,7 +1192,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const trIn = fl.ci.ids.includes(fl.tr.id);
     const got = fl.ci.total, out = fl.coach + fl.venue, left = got - out, due = (fl.coachPaid ? 0 : fl.coach) + (fl.venueDone ? 0 : fl.venue), bk = bkName() || "負責場地的人";
     const early = d > today();
-    const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 已匯款" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "還沒匯款" : early ? "待付" : "還沒付", cls = ok ? "ok" : early && !sea ? "wait" : "bad"; return S.canWrite
+    const st = (ok, kind, rec) => { const sea = kind === "spaid", yes = (sea ? "✓ 已匯款" : "✓ 已付") + (rec && rec.date ? " " + md(rec.date) : ""), no = sea ? "還沒匯款" : early ? "待付" : "還沒付", cls = ok ? "ok" : early && !sea ? "wait" : "bad"; return S.canWrite && !(rec && rec.sheet)
       ? `<button class="pill tap ${cls}" data-act="${kind}-${ok ? "undo" : "save"}" data-date="${d}"${dis()}>${ok ? yes : sea ? "記已匯款" : "記已付"}</button>`
       : `<span class="pill ${cls}">${ok ? yes : no}</span>`; };
     const row = (cat, name, note, amt, status) => `<div class="po-row" data-cat="${cat}">
@@ -1333,9 +1335,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const offs = Object.keys(OFF_DATES).sort(), cts = Object.keys(COURT_FIX).sort();
     const item = (d, txt, act) => `<li><span><b>${md(d)}（${wd(d)}）</b>${txt}</span><button class="link" data-act="${act}" data-date="${d}">刪除</button></li>`;
     return `<div class="sp-box">
-      <h3>場地訂好、付清到哪天</h3>
+      <h3>場地訂到哪天</h3>
       <div class="fields"><label class="field"><span>${esc(S.settings.bookerNick || "負責場地的人")}每月 15 日訂好下個月後，改成那個月的月底</span><input id="sp_book" type="date" value="${v("sp_book", BOOKED_TO)}"></label></div>
-      <p class="muted">這天以前的場地費都算已付館方；之後的課會標「場地還沒訂」。</p>
+      <p class="muted">之後的課會標「場地還沒訂」。付館方要每堂記：在「繳費」頁按「記已付」，或在試算表「給場費」欄填付款日期。</p>
       <h3>停課的週六</h3>
       <p class="muted">試算表標「停課」的週會自動停課，不用在這裡加。</p>
       <ul class="sp-list">${offs.map(d => item(d, esc(OFF_DATES[d]), "sp-off-del")).join("") || `<li class="muted">沒有</li>`}</ul>
