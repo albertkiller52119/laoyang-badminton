@@ -516,6 +516,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(v || row.length){ row.push(v); rows.push(row); }
     return rows;
   }
+  // 格子裡的付款日期（12/10、2026/12/10、12月10日），回傳 "YYYY-MM-DD" 或 "MM-DD"；沒有就回傳 ""
+  const cellDate = v => { const s = String(v || "").trim(); let m = s.match(/(?:(\d{4})\s*[\/\-.年]\s*)?(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})\s*日?/);
+    if(!m || +m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31) return ""; return (m[1] ? m[1] + "-" : "") + pad(m[2]) + "-" + pad(m[3]); };
+  const cdLabel = s => { const p = s.split("-"); return `${+p[p.length - 2]}/${+p[p.length - 1]}`; };
+  // 沒寫年份的日期，用參考日期補年份（付款月份比參考月份大，就是前一年）
+  const fullDate = (v, ref) => { if(!v || v.length > 5) return v || ""; const y = +ref.slice(0, 4), m = +v.slice(0, 2); return `${m > +ref.slice(5, 7) + 1 ? y - 1 : y}-${v}`; };
   function parseSheet(text){
     const rows = parseCsv(text || ""), hi = rows.findIndex(r => r.some(x => x.trim() === "日期"));
     if(hi < 0) return null;
@@ -530,9 +536,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         leave: names.filter(([c]) => (r[c] || "").includes("請假") && !late(r[c])).map(([, n]) => n),
         late: names.filter(([c]) => late(r[c])).map(([, n]) => n),
         practice: names.filter(([c]) => /不訓|只打球/.test(r[c] || "")).map(([, n]) => n),
-        paid: names.filter(([c]) => /已付|已繳|付清/.test(r[c] || "")).map(([, n]) => n),
+        // 名字格註記付給吉哥的日期（或寫「已付」）＝這堂教練費已付
+        paid: names.filter(([c]) => /已付|已繳|付清/.test(r[c] || "") || cellDate(r[c])).map(([, n]) => n),
+        paidOn: Object.fromEntries(names.map(([c, n]) => [n, cellDate(r[c])]).filter(x => x[1])),
         courts: cti >= 0 ? (parseInt(r[cti], 10) || 0) : 0,
-        coachPaid: gi >= 0 && /是|已|v|✓|ˇ|[1-9]/i.test(r[gi] || ""),
+        // 給教費（P 欄）註記付給教練的日期
+        coachPaid: gi >= 0 && /是|已|v|✓|ˇ|[1-9]/i.test(r[gi] || ""), coachPaidOn: gi >= 0 ? cellDate(r[gi]) : "",
         stop: si >= 0 && yes(r[si]), coachOff: ci >= 0 && yes(r[ci]), note: ni >= 0 ? (r[ni] || "").trim() : "" };
     });
     return { dates, names: names.map(x => x[1]) };
@@ -550,8 +559,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     rows.slice(hi + 1).forEach(r => {
       const m = (r[di] || "").trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
       if(m){ ds.push(`${m[1]}-${pad(m[2])}-${pad(m[3])}`); return; }
+      // 合計列下面一列：每人預繳的日期
+      const paid = {}; names.forEach(([c, nm]) => { const v = cellDate(r[c]); if(v) paid[nm] = v; });
+      if(Object.keys(paid).length && periods.length){ Object.assign(periods[periods.length - 1].paid, paid); return; }
       const per = {}; names.forEach(([c, nm]) => { const v = n(r[c]); if(v > 0) per[nm] = v; });
-      if(ds.length && Object.keys(per).length){ periods.push({ from: ds[0], to: ds[ds.length - 1], dates: ds.slice(), per, total: Object.values(per).reduce((a, b) => a + b, 0) }); ds = []; }
+      if(ds.length && Object.keys(per).length){ periods.push({ from: ds[0], to: ds[ds.length - 1], dates: ds.slice(), per, paid: {}, total: Object.values(per).reduce((a, b) => a + b, 0) }); ds = []; }
     });
     return { periods };
   }
@@ -844,7 +856,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 繳費紀錄：網頁記的＋試算表名字格填「已付」的（試算表的只讀）
   function payRecs(key){
     const out = { ...((S.pay[key] || {}).records || {}) }, x = sheetDay(key.slice(6));
-    if(x && x.paid) x.paid.forEach(n => { const m = memberByName(n); if(m && !out[m.id]) out[m.id] = { amount: classInfo(key.slice(6)).amt(m.id), date: key.slice(6), method: "試算表", sheet: true }; });
+    if(x && x.paid) x.paid.forEach(n => { const m = memberByName(n); if(m && !out[m.id]) out[m.id] = { amount: classInfo(key.slice(6)).amt(m.id), date: fullDate((x.paidOn || {})[n], key.slice(6)) || "", method: "試算表", sheet: true }; });
     return out;
   }
   const paidRec = (d, id) => payRecs(payKey(d))[id];
@@ -857,7 +869,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   function flowOf(d){
     const ci = classInfo(d), f = ci.f;
     const tr = treasurerOf();
-    const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || (sheetDay(d) && sheetDay(d).coachPaid ? { date: "", method: "試算表", sheet: true } : null);   // 財務付給教練的紀錄（試算表「給教費」有填也算）
+    const coachPaid = (S.pay[payKey(d)] || {}).coachPaid || (sheetDay(d) && sheetDay(d).coachPaid ? { date: fullDate(sheetDay(d).coachPaidOn, d), method: "試算表", sheet: true } : null);   // 財務付給教練的紀錄（試算表「給教費」有填也算）
     const venuePaid = (S.pay[payKey(d)] || {}).venuePaid || null;   // 場地負責人付給館方的紀錄
     const sz = f.season ? seasonOf(d) : null, inSeason = !!sz;
     const pre = prepaid(d);
@@ -1022,7 +1034,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         <div class="me-cell ${next.cls}"><span>${md(nd)} 這堂</span><b>${next.big}</b><small>${next.note}</small></div>
         <div class="me-cell ${owed.length ? "bad" : "ok"}"><span>之前的教練費</span><b>${owed.length ? money(total) : "都付清了 ✓"}</b>${owed.length ? `<small>還沒付 ${owed.length} 堂：${owed.map(md).join("、")}</small>` : ""}</div>
       </div>
-      ${vp ? `<div class="me-att">🏟️ 場地費（${md(vp.from)}～${md(vp.to)}）：<b>${vAmt ? money(vAmt) : "這期不用繳"}</b>${vAmt ? `<span>，匯款或付現金給${bkName() || "負責場地的人"}</span>` : ""}</div>` : ""}
+      ${vp ? `<div class="me-att">🏟️ 場地費（${md(vp.from)}～${md(vp.to)}）：<b>${vAmt ? money(vAmt) : "這期不用繳"}</b>${vAmt ? (vp.paid[m.name] ? `<span class="ok">　✓ ${cdLabel(vp.paid[m.name])} 已付</span>` : `<span>，還沒付，請匯款或付現金給${bkName() || "負責場地的人"}</span>`) : ""}</div>` : ""}
       ${(() => { const t = today(), x = SEASONS.find(z => z.dates.length && z.dates[0] <= t && z.to >= t);
         const ds = x ? heldDates(liveDates(x)) : pastClasses(sch).map(i => i.date).filter(d => statusOf(d) !== "paused");
         if(!ds.length) return "";
@@ -1159,9 +1171,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const zero = ps.filter(m => !p.per[m.name]);
     return `<div class="card"><h2>場地費<small>付給${bkName() || "負責場地的人"}・${md(p.from)}～${md(p.to)}・${p.dates.length} 週</small></h2>
       <p class="muted">每月 15 日${bkName() || "負責場地的人"}照大家的出席訂場地（4 人以下 1 面、5 人以上 2 面），館方算出費用後照每人出席分攤。請匯款或付現金給${bkName() || "負責場地的人"}；場地付款後才請假（臨假）不退。</p>
-      <div class="tablewrap"><table class="ledger vn-t"><thead><tr><th>隊友</th><th class="num">預繳</th></tr></thead>
-        <tbody>${rows.map(m => `<tr><td><b>${esc(m.name)}</b></td><td class="num">${money(p.per[m.name])}</td></tr>`).join("")}
-        <tr class="total"><td>合計</td><td class="num">${money(p.total)}</td></tr></tbody></table></div>
+      <div class="tablewrap"><table class="ledger vn-t"><thead><tr><th>隊友</th><th class="num">要付</th><th class="num">付了沒</th></tr></thead>
+        <tbody>${rows.map(m => { const pd = p.paid[m.name]; return `<tr><td><b>${esc(m.name)}</b></td><td class="num">${money(p.per[m.name])}</td><td class="num ${pd ? "ok" : "bad"}">${pd ? `✓ ${cdLabel(pd)}` : "還沒付"}</td></tr>`; }).join("")}
+        <tr class="total"><td>合計</td><td class="num">${money(p.total)}</td><td class="num">${(() => { const g = rows.filter(m => p.paid[m.name]); return `已付 ${g.length}／${rows.length} 人`; })()}</td></tr></tbody></table></div>
       ${zero.length ? `<p class="muted">這期不用繳：${esc(zero.map(m => m.name).join("、"))}</p>` : ""}
       <p class="muted">金額來自<a href="${VENUE_URL}" target="_blank" rel="noopener">試算表「場地費」</a>。</p>
       ${S.canWrite ? `<div class="actions"><button class="btn block" data-act="copy-venue" data-date="${d}">複製場地費通知</button></div>` : ""}
@@ -1227,7 +1239,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         return `<li class="row"><div class="who"><b>${esc(m.name)}</b></div>${(() => { const fl = flowOf(d), cn = esc(S.settings.coachNick || "教練"), pill = (ok, t, k) => flowPill(ok, (ok ? "✓ 已付給" : "還沒付給") + t, k, d); return `<div class="actions stack">${fl.season ? flowPill(fl.venueDone, fl.venueDone ? "✓ 季租已付館方" : "季租還沒付館方", "spaid", d) : pill(fl.venueDone, "館方", "venue")}${fl.coach > 0 ? pill(!!fl.coachPaid, cn, "coach") : `<span class="pill">教練請假，不用付</span>`}</div>`; })()}</li>`;
       }
       const wait = !r && d && d > today();
-      if(r && r.sheet) return `<li class="row"><div class="who"><b>${esc(m.name)}</b></div><div class="actions"><span class="pill ok" title="試算表上填了已付">✓ 已付（試算表）</span></div></li>`;
+      if(r && r.sheet) return `<li class="row"><div class="who"><b>${esc(m.name)}</b></div><div class="actions"><span class="pill ok" title="試算表上註記已付">✓ 已付${r.date ? " " + md(r.date) : "（試算表）"}</span></div></li>`;
       const right = `<div class="actions">${S.canWrite
         ? `<button class="pill ${r ? "ok" : wait ? "wait" : "bad"}" data-act="${r ? "pay-del" : "pay-save"}" data-key="${key}" data-id="${m.id}" data-amt="${amt}">${r ? "✓ 已付" : wait ? "待付" : "還沒付"}</button>`
         : `<span class="pill ${r ? "ok" : wait ? "wait" : "bad"}">${r ? "✓ 已付" : wait ? "待付" : "還沒付"}</span>`}</div>`;
@@ -1781,8 +1793,9 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
           const bk = S.settings.bookerNick || "負責場地的人";
           text = `🏟️【${S.settings.group}】場地費（${md(p.from)}～${md(p.to)}，共 ${p.dates.length} 週）\n` +
             `場地已照大家的出席向館方訂好，費用照每人出席的週數分攤（4 人以下 1 面、5 人以上 2 面）：\n` +
-            ps.map(m => `・${m.name}　${money(p.per[m.name])}`).join("\n") + `\n合計 ${money(p.total)}\n` +
+            ps.map(m => `・${m.name}　${money(p.per[m.name])}${p.paid[m.name] ? `（${cdLabel(p.paid[m.name])} 已付）` : ""}`).join("\n") + `\n合計 ${money(p.total)}\n` +
             `👉 請匯款或付現金給 ${bk}。\n` +
+            (Object.keys(p.paid).length ? (ps.some(m => !p.paid[m.name]) ? `還沒付的：${ps.filter(m => !p.paid[m.name]).map(m => m.name).join("、")}\n` : "大家都付清了！\n") : "") +
             `場地付款預訂後才請假（臨假），場地費不退喔。謝謝大家！`;
         } else if(act === "copy-season"){
           text = seasonReport();
