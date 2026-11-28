@@ -553,7 +553,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const ci = col("教練請假"), si = col("停課"), ni = col("備註"), cti = col("面數"), yes = x => /是|停|請假|v|✓|ˇ/i.test(x || "");
     const late = x => /臨假|臨時/.test(x || ""), gi = col("給教費"), vi = col("給場費");
     const num = k => { const i = col(k); return i < 0 ? null : r => { const v = parseInt(String(r[i] || "").replace(/[,，s]/g, ""), 10); return isNaN(v) ? null : v; }; };
-    const nT = num("訓練人數"), nV = num("場費人數"), pV = num("每人場費"), pC = num("每人教費");
+    const nT = num("訓練人數"), nV = num("場費人數"), pV = num("每人場費"), pC = num("每人教費"), pP = num("每人費用");
     const dates = {};
     rows.slice(hi + 1).forEach(r => {
       const m = (r[di] || "").trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/); if(!m) return;
@@ -570,7 +570,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         // 給場費（新增欄）註記建民付給館方的日期
         venuePaid: vi >= 0 && /是|已|v|✓|ˇ|TRUE|[1-9]/i.test(r[vi] || ""), venuePaidOn: vi >= 0 ? cellDate(r[vi]) : "",
         // 試算表公式算好的人數和每人金額（網頁人數一樣時，金額照試算表）
-        nTrain: nT && nT(r), nVenue: nV && nV(r), pv: pV && pV(r), pc: pC && pC(r),
+        nTrain: nT && nT(r), nVenue: nV && nV(r), pv: pV && pV(r), pc: pC && pC(r), pp: pP && pP(r),
         stop: si >= 0 && yes(r[si]), coachOff: ci >= 0 && yes(r[ci]), note: ni >= 0 ? (r[ni] || "").trim() : "" };
     });
     return { dates, names: names.map(x => x[1]) };
@@ -815,7 +815,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     </ul>`);
     // 二、場地和每人金額
     const table = sec("court", "每人大概多少？", `<p class="rb-p">${BIG_MIN - 1} 人以下訂 1 面（${money(v1)}），${BIG_MIN} 人以上訂 2 面（${money(v2)}），每堂 ${s.venueHours} 小時。</p>
-    ${ks.length ? `<table class="rb-t rb-fee"><thead><tr><th>上課</th><th>場地</th><th>每人</th></tr></thead><tbody>${ks.map(k => { const a = Math.ceil(vOf(k) / k), b = Math.ceil(coach / k); return `<tr><td>${k} 人</td><td>${k >= BIG_MIN ? 2 : 1} 面</td><td>${money(a + b)}<small>場地 ${a}＋教練 ${b}</small></td></tr>`; }).join("")}</tbody></table>
+    ${ks.length ? `<table class="rb-t rb-fee"><thead><tr><th>上課</th><th>場地</th><th>每人</th></tr></thead><tbody>${ks.map(k => { const t = Math.ceil((vOf(k) + coach) / k), a = Math.ceil(vOf(k) / k), b = t - a; return `<tr><td>${k} 人</td><td>${k >= BIG_MIN ? 2 : 1} 面</td><td>${money(t)}<small>場地 ${a}＋教練 ${b}</small></td></tr>`; }).join("")}</tbody></table>
     <p class="rb-p">零頭進位到整數元，多的存班費。人越少分攤越多，要請假記得 15 日前說喔！</p>` : ""}`);
     // 三、分工
     const who = sec("people", "誰負責什麼？", `<ul>
@@ -869,8 +869,11 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 每堂都付給財務：pv＝每人場地費（上課＋臨時請假＋只打球平分）、pc＝每人教練費（上課的人平分）、pp＝上課的人一共要付
     let pv = n + k ? Math.ceil(f.venue / (n + k)) : 0, pc = n ? Math.ceil(f.coach / n) : 0;
     const sd = sheetDay(d);   // 人數和試算表一樣，就照試算表的每人金額，兩邊才對得起來
-    if(sd && sd.nTrain === n && sd.nVenue === n + k && sd.pv > 0){ pv = sd.pv; pc = n ? (sd.pc || 0) : 0; }
-    const pp = pv + pc;
+    // 沒有臨假、只打球時，上課的人照「總費用÷人數」進位（和試算表每人費用一樣，例如 7 人 3,500 元＝每人 500）
+    let pp = !k && n ? Math.ceil((f.venue + f.coach) / n) : pv + pc;
+    if(sd && sd.nTrain === n && sd.nVenue === n + k && sd.pv > 0){ pv = sd.pv; pc = n ? (sd.pc || 0) : 0; pp = !k && n && sd.pp > 0 ? sd.pp : pv + pc; }
+    if(pp < pv) pp = pv;
+    pc = n ? pp - pv : 0;   // 教練那份＝每人合計扣掉場地，明細加起來才等於要付的錢
     f.n = n; f.pp = pp;
     const amt = id => prac.includes(id) ? pv : pp;
     const payers = ids.filter(id => amt(id) > 0);
