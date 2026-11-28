@@ -622,7 +622,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const isL = k => !"#~!".includes(k.split("|")[1][0]), isP = k => k.split("|")[1][0] === PRAC, isT = k => k.split("|")[1][0] === LATE, is = t => k => k.endsWith("|" + t);
     const lines = [
       ["新增請假", add.filter(isL), fmt], ["取消請假", del.filter(isL), fmt],
-      ["臨時請假（場地費照付）", add.filter(isT), fmt], ["取消臨時請假", del.filter(isT), fmt],
+      ["臨時請假（預繳的場地費不退）", add.filter(isT), fmt], ["取消臨時請假", del.filter(isT), fmt],
       ["只打球（不上課）", add.filter(isP), fmt], ["取消只打球", del.filter(isP), fmt],
       ["停課", add.filter(is(STOP)), fmtD], ["取消停課", del.filter(is(STOP)), fmtD],
       ["教練請假", add.filter(is(COFF)), fmtD], ["取消教練請假", del.filter(is(COFF)), fmtD]
@@ -734,7 +734,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     <ul class="rule-list">
       <li><strong>每月 15 日截止：</strong>下個月要請假，請在 15 日前到 LINE 群組說一聲，${bk}會照大家的出席向館方訂場地。<span class="rl-hl">下次截止 ${mdw(nx.d)}（統計 ${nx.for} 月）</span>${BOOKED_TO ? `，場地目前訂到 ${md(BOOKED_TO)}` : ""}。</li>
       <li><strong>請假：</strong>15 日前事先請假，場地費、教練費都不用付。</li>
-      <li><strong>臨時請假：</strong>場地付款預訂後才請假，場地費照付、不退，教練費不用付。<small class="muted">（試算表寫「臨假」）</small></li>
+      <li><strong>臨時請假：</strong>場地已預繳後臨時請假不能來，已預繳的場地費不退，教練費不用付。<small class="muted">（試算表寫「臨假」）</small></li>
       <li><strong>只打球：</strong>只來打球、不上教練課，只付場地費。<small class="muted">（試算表寫「不訓」）</small></li>
       <li><strong>沒請假缺席：</strong>場地費、教練費都照付。</li>
       <li><strong>上課少於 4 人：</strong>大家討論要不要停課。</li>
@@ -784,7 +784,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const ks = []; for(let k = all; k >= 3 && ks.length < 6; k--) ks.push(k);
     const vOf = k => (k >= BIG_MIN ? v2 : v1);
     const split = sec("coin", "費用怎麼分攤？", `<ul>
-      <li><strong>場地費：</strong>照當週人數和面數平分。每月 15 日${bk}照大家下個月的出席向館方訂場地，館方算出費用後，${bk}會告訴每個人要付多少，請匯款或付現金給${bk}。場地付款預訂後才請假（臨時請假），場地費照付、不退。</li>
+      <li><strong>場地費：</strong>照當週人數和面數平分。每月 15 日${bk}照大家下個月的出席向館方訂場地，館方算出費用後，${bk}會告訴每個人要付多少，請匯款或付現金給${bk}。場地費已預繳後才臨時請假不能來，已預繳的場地費不退。</li>
       <li><strong>教練費：</strong>每堂 ${money(coach)}（${s.coachHours} 小時），由當天實際上課的人平分；請假、臨時請假、只打球都不用付。</li>
       <li><strong>金額進位：</strong>有零頭一律進位到整數元，多的存進班費。</li>
     </ul>
@@ -1020,7 +1020,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(nd < S.settings.start) next = { cls: "mute", big: "還沒開課", note: `第一堂 ${md(S.settings.start)}` };
     else if(offReason(nd) || seasonOff(nd) || ci.st === "paused") next = { cls: "mute", big: "停課", note: "這週不用付" };
     else if(rec === "leave") next = { cls: "mute", big: "已請假", note: "場地費、教練費都不用付" };
-    else if(rec === "late") next = { cls: "mute", big: "臨時請假", note: `場地費照付（已預繳 ${money(ci.pv)}），教練費不用付` };
+    else if(rec === "late") next = { cls: "mute", big: "臨時請假", note: `已預繳的場地費 ${money(ci.pv)} 不退，教練費不用付` };
     else if(rec === "practice") next = { cls: "mute", big: "只打球", note: `不上教練課，場地費已預繳 ${money(ci.pv)}，教練費不用付` };
     else if(!ci.pp) next = { cls: "mute", big: "不用付", note: `沒有教練課，場地費已預繳 ${money(ci.pv)}` };
     else if(isTreasurer(m)) next = { cls: "mute", big: "不用付", note: "你負責收教練費，自己那份不用轉" };
@@ -1074,14 +1074,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(ci.st === "paused") return box("off", msg(`停課：${esc(lv.join("、"))} 請假，這週不上課、不收費`), modeSwitch("paused"));
     const dl = leaveDeadline(d);
     const foot = [
-      d >= t ? `請假截止 ${mdw(dl)}${t > dl ? "（已過，請假算臨時請假，場地費照付）" : ""}` : "",
+      d >= t ? `請假截止 ${mdw(dl)}${t > dl ? "（已過，現在請假算臨時請假，預繳的場地費不退）" : ""}` : "",
       d >= t && BOOKED_TO && d > BOOKED_TO ? "場地還沒訂" : "",
       f.coachOff ? coachOffText(d) : ""].filter(Boolean).join("・");
     const rec = (S.att[d] && S.att[d].records) || {}, on = active().filter(m => ci.ids.includes(m.id));
     const nm = a => a.map(m => esc(m.name)).join("、");
     const pracL = on.filter(m => rec[m.id] === "practice"), lateL = on.filter(m => rec[m.id] === "late");
     const goL = on.filter(m => !["absent", "practice", "late"].includes(rec[m.id])), leaveL = active().filter(m => rec[m.id] === "leave"), absentL = on.filter(m => rec[m.id] === "absent");
-    const pracLine = (lateL.length ? `<div class="nx-pr"><b>臨時請假</b><span>${nm(lateL)}：場地已訂好，場地費照付 ${money(ci.pv)}，教練費不用付</span></div>` : "")
+    const pracLine = (lateL.length ? `<div class="nx-pr"><b>臨時請假</b><span>${nm(lateL)}：臨時不能來，已預繳的場地費 ${money(ci.pv)} 不退，教練費不用付</span></div>` : "")
       + (pracL.length ? `<div class="nx-pr"><b>只打球</b><span>${nm(pracL)}：不上教練課，只付場地費 ${money(ci.pv)}</span></div>` : "");
     const fewLine = few(d, ci) && d >= t ? `<div class="nx-warn">上課只有 ${ci.n} 人（只打球、臨時請假不算），少於 4 人，請大家討論要不要停課</div>` : "";
     const who = where === "checkin" && !(S.canWrite && d <= t) ? `<div class="nx-who">
@@ -1121,7 +1121,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
-          ${s === "practice" || s === "late" ? `<span class="pill" title="請假紀錄表登記${ST[s]}">${s === "late" ? "臨時請假・付場地費" : "只打球・不上課"}</span>` : `<div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
+          ${s === "practice" || s === "late" ? `<span class="pill" title="請假紀錄表登記${ST[s]}">${s === "late" ? "臨時請假・場地費不退" : "只打球・不上課"}</span>` : `<div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
             ${["present","leave","absent"].map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
           </div>`}</li>`;
       }).join("") + `</ul>
@@ -1170,7 +1170,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const ps = players().slice().sort(byClassThenStroke), rows = ps.filter(m => p.per[m.name]);
     const zero = ps.filter(m => !p.per[m.name]);
     return `<div class="card"><h2>場地費<small>付給${bkName() || "負責場地的人"}・${md(p.from)}～${md(p.to)}・${p.dates.length} 週</small></h2>
-      <p class="muted">每月 15 日${bkName() || "負責場地的人"}照大家的出席訂場地（4 人以下 1 面、5 人以上 2 面），館方算出費用後照每人出席分攤。請匯款或付現金給${bkName() || "負責場地的人"}；場地付款後才請假（臨時請假）不退。</p>
+      <p class="muted">每月 15 日${bkName() || "負責場地的人"}照大家的出席訂場地（4 人以下 1 面、5 人以上 2 面），館方算出費用後照每人出席分攤。請匯款或付現金給${bkName() || "負責場地的人"}；預繳後才臨時請假不能來，場地費不退。</p>
       <div class="tablewrap"><table class="ledger vn-t"><thead><tr><th>隊友</th><th class="num">要付</th><th class="num">付了沒</th></tr></thead>
         <tbody>${rows.map(m => { const pd = p.paid[m.name]; return `<tr><td><b>${esc(m.name)}</b></td><td class="num">${money(p.per[m.name])}</td><td class="num ${pd ? "ok" : "bad"}">${pd ? `✓ ${cdLabel(pd)}` : "還沒付"}</td></tr>`; }).join("")}
         <tr class="total"><td>合計</td><td class="num">${money(p.total)}</td><td class="num">${(() => { const g = rows.filter(m => p.paid[m.name]); return `已付 ${g.length}／${rows.length} 人`; })()}</td></tr></tbody></table></div>
@@ -1785,7 +1785,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             (leave.length || late.length || prac.length ? `${[leave.length ? `${leave.join("、")} 請假` : "", late.length ? `${late.join("、")} 臨時請假` : "", prac.length ? `${prac.join("、")} 只打球` : ""].filter(Boolean).join("，")}，上課 ${ci.n} 位。\n` : `上課 ${ci.n} 位。\n`) +
             `教練費 ${money(cf.coach)}，上課的 ${ci.n} 位平分，每人 ${money(ci.pp)}。\n` +
             (treasurerOf() ? `👉 轉帳的請提前轉給 ${tr}${info}，付現金的當天交給 ${tr}。\n` : "") +
-            `（場地 ${cf.two ? 2 : 1} 面 ${money(cf.venue)}，${ci.n + ci.k} 位每人 ${money(ci.pv)}，另外付給 ${S.settings.bookerNick || "負責場地的人"}${late.length || prac.length ? "，臨時請假、只打球的人只付場地費" : ""}）\n` +
+            `（場地 ${cf.two ? 2 : 1} 面 ${money(cf.venue)}，${ci.n + ci.k} 位每人 ${money(ci.pv)}，另外付給 ${S.settings.bookerNick || "負責場地的人"}${late.length || prac.length ? "，臨時請假的場地費不退、只打球的人只付場地費" : ""}）\n` +
             (unpaid.length ? `還沒付的：${unpaid.join("、")}，再麻煩大家囉，謝謝！` : `大家都已付，謝謝大家！`);
         } else if(act === "copy-venue"){
           const p = venuePeriod(b.dataset.date); if(!p) break;
@@ -1796,7 +1796,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
             ps.map(m => `・${m.name}　${money(p.per[m.name])}${p.paid[m.name] ? `（${cdLabel(p.paid[m.name])} 已付）` : ""}`).join("\n") + `\n合計 ${money(p.total)}\n` +
             `👉 請匯款或付現金給 ${bk}。\n` +
             (Object.keys(p.paid).length ? (ps.some(m => !p.paid[m.name]) ? `還沒付的：${ps.filter(m => !p.paid[m.name]).map(m => m.name).join("、")}\n` : "大家都付清了！\n") : "") +
-            `場地付款預訂後才請假（臨時請假），場地費不退喔。謝謝大家！`;
+            `預繳後才臨時請假不能來，場地費不退喔。謝謝大家！`;
         } else if(act === "copy-season"){
           text = seasonReport();
         } else if(act === "copy-one"){
