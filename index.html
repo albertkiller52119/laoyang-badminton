@@ -1012,7 +1012,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     else if(!ci.pp) next = { cls: "mute", big: "不用付", note: `沒有教練課，場地費已預繳 ${money(ci.pv)}` };
     else if(isTreasurer(m)) next = { cls: "mute", big: "不用付", note: "你負責收教練費，自己那份不用轉" };
     else if(paidRec(nd, m.id)) next = { cls: "ok", big: "✓ 已付", note: money(oweAmount(m, nd)) };
-    else next = { cls: "", big: money(oweAmount(m, nd)), note: `教練費・${how}` };
+    else next = { cls: "", big: money(oweAmount(m, nd)), note: how };
     const owed = owedBy(m, sch).filter(d => d !== nd), total = owed.reduce((a, d) => a + oweAmount(m, d), 0);
     const vp = venuePeriod(nd), vAmt = vp && vp.per[m.name];
     return `<div class="me">
