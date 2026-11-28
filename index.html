@@ -910,7 +910,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     ? `<br><span class="pill ok">已付款・${esc(done.method||"")}・${esc(md(done.date||today()))}</span>${S.canWrite ? ` <button class="link" data-act="${kind}-undo" data-date="${d}">取消紀錄</button>` : ""}`
     : (S.canWrite ? `<div class="actions" style="margin-top:6px">${METHODS.map(x => `<button class="btn small${x === (S.draft[draftKey] || "LINE Pay") ? " primary" : ""}" data-act="${kind}-method" data-v="${x}">${x}</button>`).join("")}<button class="btn small" data-act="${kind}-save" data-date="${d}">${label}</button></div>` : `<br><span class="pill bad">還沒付</span>`);
   // n：分攤場地費的人數（不給就用全部隊友）；4 人以下訂 1 面、5 人以上訂 2 面
-  // 面數優先順序：管理員指定 → 試算表「面數」欄 → 照人數
+  // 面數優先順序：試算表「面數」欄 → 管理員指定 → 照人數（訂兩面最後只租到一面，改試算表就好）
   const BIG_MIN = 5;
   const twoCourts = n => n >= BIG_MIN;
   function fees(n, d){
@@ -918,12 +918,12 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     if(n == null) n = players().length;
     const season = !!d && d >= SEASON_FROM;
     const fix = d && COURT_FIX[d], sc = d && sheetDay(d) && [1, 2].includes(sheetDay(d).courts) ? sheetDay(d).courts : 0;
-    const two = fix ? fix === 2 : sc ? sc === 2 : (season || twoCourts(n)), rate = two ? s.venueRate2 : s.venueRate;
+    const ruleTwo = season || twoCourts(n), two = sc ? sc === 2 : fix ? fix === 2 : ruleTwo, rate = two ? s.venueRate2 : s.venueRate;
     const cOff = !!d && coachOff(d);
     const coach = cOff ? 0 : s.coachHours * s.coachRate, venue = s.venueHours * rate;
     const session = coach + venue;
     const pp = n ? Math.ceil(session / n) : 0;
-    return { coach, venue, session, n, pp, two, rate, season, coachOff: cOff, exact: n ? session % n === 0 : true };
+    return { coach, venue, session, n, pp, two, ruleTwo, courtSrc: sc ? "sheet" : fix ? "admin" : "rule", rate, season, coachOff: cOff, exact: n ? session % n === 0 : true };
   }
   const courtLabel = f => `${f.two ? 2 : 1} 面場地` + (f.coachOff ? "，沒有教練課，只收場地費" : "");
   // ---------- writes: one at a time per document ----------
@@ -1109,7 +1109,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     return box("", `<div class="nx-s">
         <div><span>${ic("people")}${f.coachOff ? "下場" : "上課"}</span><b>${ci.n} 人</b></div>
         <div><span>${ic("coin")}每人</span><b>${money(ci.pp).replace("NT$", '<i class="cur">NT$</i>')}</b><small>${ci.pc ? `場地 ${ci.pv}＋教練 ${ci.pc}` : "只收場地費"}</small></div>
-        <div><span>${ic("court")}場地</span><b>${f.two ? 2 : 1} 面</b><small>${ci.n + ci.k} 人分攤</small></div>
+        <div><span>${ic("court")}場地</span><b>${f.two ? 2 : 1} 面</b><small>${f.two !== f.ruleTwo ? (f.two ? "多租 1 面・" : "只租到 1 面・") : ""}${ci.n + ci.k} 人分攤</small></div>
       </div>
       ${fewLine}${pracLine}${who}
       <div class="nx-f">${ic("clock")}<span>${foot}</span></div>`, (ci.st === "single" ? modeSwitch("single") : "") + szCancel);
@@ -1347,7 +1347,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <ul class="sp-list">${cts.map(d => item(d, `開 ${COURT_FIX[d]} 面`, "sp-ct-del")).join("") || `<li class="muted">沒有</li>`}</ul>
       <div class="fields"><label class="field"><span>日期</span><input id="sp_ct_d" type="date" value="${v("sp_ct_d", "")}"></label><label class="field"><span>開幾面</span><select id="sp_ct_n"><option value="1"${v("sp_ct_n", "2") === "1" ? " selected" : ""}>1 面</option><option value="2"${v("sp_ct_n", "2") === "2" ? " selected" : ""}>2 面</option></select></label></div>
       <div class="actions"><button class="btn small" data-act="sp-ct-add">加入</button></div>
-      <p class="muted">平常照人數自動算（4 人以下 1 面、5 人以上 2 面），試算表「面數」有填就照試算表，特殊情況才要指定。</p>
+      <p class="muted">試算表「面數」有填就照試算表（例如訂兩面最後只租到一面，把面數改成 1，金額會自動重算）；沒填才照人數（4 人以下 1 面、5 人以上 2 面）或這裡指定的面數。</p>
     </div>`;
   }
 
