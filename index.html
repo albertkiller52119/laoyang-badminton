@@ -1085,14 +1085,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       + (pracL.length ? `<div class="nx-pr"><b>不訓</b><span>${nm(pracL)}：只打球、不上教練課，只付場地費 ${money(ci.pv)}</span></div>` : "");
     const fewLine = few(d, ci) && d >= t ? `<div class="nx-warn">上課只有 ${ci.n} 人（不訓、臨假不算），少於 4 人，請大家討論要不要停課</div>` : "";
     const who = where === "checkin" && !(S.canWrite && d <= t) ? `<div class="nx-who">
-        <p><b>${d <= t ? "出席" : "上課"}</b>${nm(goL) || "－"}</p>
+        <p><b>${d <= t ? "出席" : f.coachOff ? "下場" : "上課"}</b>${nm(goL) || "－"}</p>
         ${leaveL.length ? `<p><b>請假</b>${nm(leaveL)}</p>` : ""}
         ${absentL.length ? `<p><b>缺席</b>${nm(absentL)}</p>` : ""}
       </div>` : "";
     const szCancel = S.canWrite && d >= t && statusOf(d) === "planned" && seasonOf(d) && seasonOf(d).dates.includes(d)
       ? `<div class="actions"><button class="btn small" data-act="sz-cancel" data-date="${d}">這堂停課（場地也退）</button></div>` : "";
     return box("", `<div class="nx-s">
-        <div><span>${ic("people")}上課</span><b>${ci.n} 人</b></div>
+        <div><span>${ic("people")}${f.coachOff ? "下場" : "上課"}</span><b>${ci.n} 人</b></div>
         <div><span>${ic("coin")}教練費</span><b>${ci.pp ? money(ci.pp).replace("NT$", '<i class="cur">NT$</i>') : "免"}</b><small>每人</small></div>
         <div><span>${ic("court")}場地 ${f.two ? 2 : 1} 面</span><b>${money(ci.pv).replace("NT$", '<i class="cur">NT$</i>')}</b><small>每人・預繳</small></div>
       </div>
