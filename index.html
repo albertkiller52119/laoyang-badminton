@@ -541,6 +541,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const names = []; for(let c = di + 1; c < h.length && h[c]; c++) names.push([c, h[c]]);
     const ci = col("教練請假"), si = col("停課"), ni = col("備註"), cti = col("面數"), yes = x => /是|停|請假|v|✓|ˇ/i.test(x || "");
     const late = x => /臨假|臨時/.test(x || ""), gi = col("給教費");
+    const num = k => { const i = col(k); return i < 0 ? null : r => { const v = parseInt(String(r[i] || "").replace(/[,，s]/g, ""), 10); return isNaN(v) ? null : v; }; };
+    const nT = num("訓練人數"), nV = num("場費人數"), pV = num("每人場費"), pC = num("每人教費");
     const dates = {};
     rows.slice(hi + 1).forEach(r => {
       const m = (r[di] || "").trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/); if(!m) return;
@@ -548,12 +550,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         leave: names.filter(([c]) => (r[c] || "").includes("請假") && !late(r[c])).map(([, n]) => n),
         late: names.filter(([c]) => late(r[c])).map(([, n]) => n),
         practice: names.filter(([c]) => /不訓|只打球/.test(r[c] || "")).map(([, n]) => n),
-        // 名字格註記付給吉哥的日期（或寫「已付」）＝這堂教練費已付
-        paid: names.filter(([c]) => /已付|已繳|付清/.test(r[c] || "") || cellDate(r[c])).map(([, n]) => n),
+        // 名字格勾選收費日期、「已付款」或「臨假已付款」＝這堂已付
+        paid: names.filter(([c]) => /已付|已繳|付清|^TRUE$/i.test((r[c] || "").trim()) || cellDate(r[c])).map(([, n]) => n),
         paidOn: Object.fromEntries(names.map(([c, n]) => [n, cellDate(r[c])]).filter(x => x[1])),
         courts: cti >= 0 ? (parseInt(r[cti], 10) || 0) : 0,
         // 給教費（P 欄）註記付給教練的日期
         coachPaid: gi >= 0 && /是|已|v|✓|ˇ|[1-9]/i.test(r[gi] || ""), coachPaidOn: gi >= 0 ? cellDate(r[gi]) : "",
+        // 試算表公式算好的人數和每人金額（網頁人數一樣時，金額照試算表）
+        nTrain: nT && nT(r), nVenue: nV && nV(r), pv: pV && pV(r), pc: pC && pC(r),
         stop: si >= 0 && yes(r[si]), coachOff: ci >= 0 && yes(r[ci]), note: ni >= 0 ? (r[ni] || "").trim() : "" };
     });
     return { dates, names: names.map(x => x[1]) };
@@ -643,10 +647,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const now = d => { if(offReason(d)) return `${md(d)} 停課，不收費`; const ci = classInfo(d);
       return `${md(d)} 上課 ${ci.n} 人、每人 ${money(ci.pp)}${ci.k ? `，只付場地費 ${ci.k} 人、每人 ${money(ci.pv)}` : ""}${coachOff(d) ? `（${coachOffText(d)}）` : few(d, ci) ? "（上課少於 4 人，要討論是否停課）" : ""}`; };
     return `<div class="sheet-alert" role="status">
-      <b class="sa-h">${ic("sheet")} 請假紀錄表有更新</b>
+      <b class="sa-h">${ic("sheet")} 試算表有更新</b>
       ${lines}
       <div class="muted">現在：${dates.map(now).join("；")}</div>
-      <div class="actions"><button class="btn small primary" data-act="sheet-ok">知道了</button><a class="btn small" href="${SHEET_URL}" target="_blank" rel="noopener">打開請假表</a></div>
+      <div class="actions"><button class="btn small primary" data-act="sheet-ok">知道了</button><a class="btn small" href="${SHEET_URL}" target="_blank" rel="noopener">打開試算表</a></div>
     </div>`;
   }
   // 寫回雲端時，試算表管的日期不存請假（以試算表為準）
@@ -757,8 +761,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <tr><td>只打球<small>不上課，試算表寫「不訓」</small></td><td>${y}</td><td>${n}</td></tr>
       <tr><td>沒請假缺席</td><td>${y}</td><td>${y}</td></tr>
     </tbody></table>
-    <p class="muted">上課少於 4 人，大家討論要不要停課。請假都記在「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假紀錄表</a>」，網頁會自動同步。</p>
-    ${S.canWrite && sheetUnknown().length ? `<p class="muted"><b class="bad">請假紀錄表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）</p>` : ""}
+    <p class="muted">上課少於 4 人，大家討論要不要停課。請假和繳費都記在試算表「<a href="${SHEET_URL}" target="_blank" rel="noopener">請假_收費記錄</a>」，網頁會自動同步；每週費用可看「場地費加教練費明細」（自動算的，不要改）。</p>
+    ${S.canWrite && sheetUnknown().length ? `<p class="muted"><b class="bad">試算表有對不到的名字：${esc(sheetUnknown().join("、"))}</b>（名字要和隊友名單一樣）</p>` : ""}
   </div>`; };
   // 管理員：場租合約重點
   const contractBox = () => `<h3>${ic("sheet")}場租合約重點</h3>${contractList()}`;
@@ -850,8 +854,10 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     const f = { ...fees(n + k, d) };
     if(!n){ f.coach = 0; f.session = f.venue; }
     // 每堂都付給財務：pv＝每人場地費（上課＋臨時請假＋只打球平分）、pc＝每人教練費（上課的人平分）、pp＝上課的人一共要付
-    const pv = n + k ? Math.ceil(f.venue / (n + k)) : 0;
-    const pc = n ? Math.ceil(f.coach / n) : 0, pp = pv + pc;
+    let pv = n + k ? Math.ceil(f.venue / (n + k)) : 0, pc = n ? Math.ceil(f.coach / n) : 0;
+    const sd = sheetDay(d);   // 人數和試算表一樣，就照試算表的每人金額，兩邊才對得起來
+    if(sd && sd.nTrain === n && sd.nVenue === n + k && sd.pv > 0){ pv = sd.pv; pc = n ? (sd.pc || 0) : 0; }
+    const pp = pv + pc;
     f.n = n; f.pp = pp;
     const amt = id => prac.includes(id) ? pv : pp;
     const payers = ids.filter(id => amt(id) > 0);
@@ -1128,7 +1134,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         const s = rec[m.id];
         return `<li class="row">
           <div class="who"><b>${esc(m.name)}</b>${tagHtml(m)}</div>
-          ${s === "practice" || s === "late" ? `<span class="pill" title="請假紀錄表登記${ST[s]}">${s === "late" ? "臨時請假・付場地費" : "只打球・不上課"}</span>` : `<div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
+          ${s === "practice" || s === "late" ? `<span class="pill" title="試算表登記${ST[s]}">${s === "late" ? "臨時請假・付場地費" : "只打球・不上課"}</span>` : `<div class="seg" style="--n:3" role="group" aria-label="${esc(m.name)} 的出席狀態">
             ${["present","leave","absent"].map(k => `<button data-act="att" data-id="${m.id}" data-s="${k}" aria-pressed="${s===k}"${sheetDay(S.date) && (k === "leave" || s === "leave") ? " disabled" : dis()}>${ST[k]}</button>`).join("")}
           </div>`}</li>`;
       }).join("") + `</ul>
@@ -1161,7 +1167,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
         ${unpaid.length || !mustPay.length ? "" : `<div class="banner ok">✓ 大家都已付，辛苦了！</div>`}
         ${fl.tr ? moneyCard(d, fl, paid.length, mustPay.length, S.canWrite || !mustPay.length ? "" : payList(key, listed, ci.pp, d, "pair")) : ""}
         ${S.canWrite && who.length ? `<h3>隊友繳費・已付 ${paid.length}／${mustPay.length} 人</h3>
-        <p class="muted">點按鈕記已付，再點一下取消；試算表名字格填了付款日期也會自動打勾。</p>${payList(key, listed, ci.pp, d, "pair")}${unpaid.length ? `<div class="actions"><button class="btn block" data-act="copy-class" data-date="${d}">複製收費訊息</button></div>` : ""}`
+        <p class="muted">點按鈕記已付，再點一下取消；試算表勾了收費日期、「已付款」或「臨假已付款」也會自動打勾。</p>${payList(key, listed, ci.pp, d, "pair")}${unpaid.length ? `<div class="actions"><button class="btn block" data-act="copy-class" data-date="${d}">複製收費訊息</button></div>` : ""}`
           : fl.tr || !who.length ? "" : `<details class="fold"><summary>大家繳費狀況（已付 ${paid.length}／${mustPay.length} 人）</summary>${payList(key, listed, ci.pp, d, "pair")}</details>`}
         `;
     }
@@ -1661,7 +1667,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       case "att": {
         const date = S.date, s = b.dataset.s;
         const cur = { ...((S.att[date] && S.att[date].records) || {}) };
-        if(sheetDay(date) && (s === "leave" || cur[id] === "leave")){ toast("請假以請假紀錄試算表為準，請到試算表修改"); break; }
+        if(sheetDay(date) && (s === "leave" || cur[id] === "leave")){ toast("請假以試算表「請假_收費記錄」為準，請到試算表修改"); break; }
         const hadLeave = Object.values(cur).includes("leave");
         if(cur[id] === s) delete cur[id]; else cur[id] = s;
         const hasLeave = Object.values(cur).includes("leave");
@@ -1908,15 +1914,13 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       if(!p) return;
       S.sheet = p; S.sheetAt = Date.now();
       try { localStorage.setItem("ylSheet", txt); } catch(_){}
-      try { const rv = await fetch(VENUE_CSV + "&t=" + Date.now(), { credentials: "omit", cache: "no-store" }), tv = await rv.text(), pv = parseVenue(tv);
-        if(pv){ S.venue = pv; try { localStorage.setItem("ylVenue", tv); } catch(_){} } } catch(_){}
       document.querySelectorAll(".sync-at").forEach(el => el.textContent = syncAgo());
       if(pendingWrites || staged.size) return;   // 有修改還沒存，等存完重新載入時再合併
       mergeAtt(); scheduleRender();
     } catch(_){}
   }
   try { const p = parseSheet(localStorage.getItem("ylSheet") || ""); if(p) S.sheet = p; } catch(_){}
-  try { const p = parseVenue(localStorage.getItem("ylVenue") || ""); if(p) S.venue = p; } catch(_){}
+  try { localStorage.removeItem("ylVenue"); } catch(_){}
   // 先用手機裡上次存的資料把畫面畫出來，不用等網路
   try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); if(c && c.d){ applyData(c.d); S.cacheAt = c.t; } } catch(_){}
   if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
