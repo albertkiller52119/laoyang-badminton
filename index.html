@@ -484,7 +484,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const ST = {present:"出席", leave:"請假", absent:"缺席", practice:"只打球", late:"臨時請假"};
   const DEF = { group:"老楊輪羽班", location:"", time:"每週六 14:00–17:00", start:"2026-12-12",
     coachHours:2, coachRate:1000, venueHours:3, venueRate:300, venueRate2:500, bigMin:5,
-    venuePayer:"", treasurer:"m04", payInfo:"", manager:"m01", trNick:"吉哥", vpNick:"芳玉", bookerNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
+    venuePayer:"", treasurer:"mmwrwo34l", keeper:"m04", payInfo:"", manager:"m01", trNick:"建民", keeperNick:"吉哥", vpNick:"芳玉", bookerNick:"芳玉", coachNick:"楊教練" };   // 誰先付場地費、誰負責收錢、收款方式說明、誰負責維護管理
   const NUMS = ["coachHours","coachRate","venueHours","venueRate","venueRate2","bigMin"];
   // 2026/11 開會決定不租季，改成每月統計人數再訂場地（季租程式保留，沒有季就不作用）
   let SEASON_FROM = "9999-12-31";
@@ -710,11 +710,14 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const nameOf = id => (S.members.find(m => m.id === id) || {}).name || "（已刪除的隊友）";
   const dis = () => S.canWrite ? "" : " disabled";
   const tagHtml = m => (m.id === S.settings.manager ? `<span class="tag role">管理</span>` : "")
-    + (m.id === S.settings.treasurer ? `<span class="tag role">財務</span>` : "");
+    + (m.id === S.settings.treasurer ? `<span class="tag role">收錢</span>` : "")
+    + (m.id === S.settings.keeper ? `<span class="tag role">管帳</span>` : "");
   // 財務（收錢的人）和先付場地費的人
   const treasurerOf = () => active().find(m => m.id === S.settings.treasurer) || null;
   const venuePayerOf = () => null;   // 已取消「先墊場地費」的角色：場地費由財務直接付館方
   const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
+  const keeperOf = () => active().find(m => m.id === S.settings.keeper) || null;
+  const kpName = () => esc((keeperOf() && S.settings.keeperNick) || (keeperOf() || {}).name || "");   // 管帳（維護試算表）的人
   const bkName = () => esc(S.settings.bookerNick || "");   // 向館方租借場地的人
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
@@ -800,7 +803,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 三、分工
     const who = sec("people", "誰負責什麼？", `<ul>
       <li><strong>${bk}：</strong>聯繫場館，每月 15 日照大家的出席訂場地。</li>
-      <li><strong>${tr}：</strong>維護試算表、算每人費用，收場地費和教練費，付館方和${cn}。</li>
+      ${kpName() && kpName() !== tr ? `<li><strong>${kpName()}：</strong>管帳，維護試算表、算每人費用、記誰付了。</li>
+      <li><strong>${tr}：</strong>收錢，大家的場地費和教練費都轉給${tr}，由${tr}付館方和${cn}。</li>` : `<li><strong>${tr}：</strong>維護試算表、算每人費用，收場地費和教練費，付館方和${cn}。</li>`}
     </ul>`);
     // 四、羽球
     const ball = sec("sheet", "羽球怎麼買？", `<ul>
@@ -1533,7 +1537,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       <div class="fields">${fld("coachHours", "教練課幾小時", "number")}${fld("coachRate", "教練每小時", "int")}${fld("venueHours", "場地租幾小時", "number")}${fld("venueRate", "1 面每小時", "int")}${fld("venueRate2", "2 面每小時", "int")}</div>
       <p class="muted">場地費都填身障半價後的價格。</p>
       <h3>人員</h3>
-      <div class="fields">${pick("manager", "管理員")}${pick("treasurer", "財務")}${fld("trNick", "財務的稱呼", "text", ' placeholder="例如：吉哥"')}${fld("bookerNick", "場地預訂人的稱呼", "text", ' placeholder="例如：芳玉"')}${fld("payInfo", "收款方式（大家看得到）", "full", ' placeholder="例如：LINE Pay 付給吳宗吉，或上課時給現金"')}</div>`;
+      <div class="fields">${pick("manager", "管理員")}${pick("treasurer", "收錢的人")}${fld("trNick", "收錢的人稱呼", "text", ' placeholder="例如：建民"')}${pick("keeper", "管帳的人")}${fld("keeperNick", "管帳的人稱呼", "text", ' placeholder="例如：吉哥"')}${fld("bookerNick", "場地預訂人的稱呼", "text", ' placeholder="例如：芳玉"')}${fld("payInfo", "收款方式（大家看得到）", "full", ' placeholder="例如：LINE Pay 或轉帳給建民，或上課時給現金"')}</div>`;
     return `<p class="muted">改完按下方「確認儲存」，才會存進雲端。</p>
       ${sec("team", "隊友", team, `${on.length} 人上課${off.length ? `・${off.length} 人暫停` : ""}`)}
       ${sec("fee", "課程和費用", fee)}
@@ -1564,7 +1568,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   // 設定欄位一改就暫存，按下方「確認儲存」才寫進雲端
   function applySettings(){
     const next = { ...S.settings };
-    ["group","location","time","start","manager","treasurer","payInfo","trNick","bookerNick"].forEach(k => { const el = document.getElementById("set_" + k); if(el) next[k] = el.value.trim(); });
+    ["group","location","time","start","manager","treasurer","keeper","payInfo","trNick","keeperNick","bookerNick"].forEach(k => { const el = document.getElementById("set_" + k); if(el) next[k] = el.value.trim(); });
     NUMS.forEach(k => { const el = document.getElementById("set_" + k); if(!el) return; const n = Number(el.value); next[k] = n >= 0 ? n : DEF[k]; });
     if(!next.start) next.start = DEF.start;
     delete next.perTerm;
@@ -1841,7 +1845,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
       }
       case "settings-save": {
         const next = { ...S.settings };
-        ["group","location","time","start","manager","treasurer","payInfo","trNick","bookerNick"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
+        ["group","location","time","start","manager","treasurer","keeper","payInfo","trNick","keeperNick","bookerNick"].forEach(k => { next[k] = document.getElementById("set_"+k).value.trim(); });
         NUMS.forEach(k => { const n = Number(document.getElementById("set_"+k).value); next[k] = n >= 0 ? n : DEF[k]; });
         if(!next.start) next.start = DEF.start;
         delete next.perTerm;
