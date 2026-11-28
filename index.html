@@ -721,7 +721,7 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   const venuePayerOf = () => null;   // 已取消「先墊場地費」的角色：場地費由財務直接付館方
   const trName = () => (treasurerOf() && S.settings.trNick) || (treasurerOf() || {}).name || "財務";
   const keeperOf = () => active().find(m => m.id === S.settings.keeper) || null;
-  const kpName = () => esc((keeperOf() && S.settings.keeperNick) || (keeperOf() || {}).name || "");   // 管帳（維護試算表）的人
+  const kpName = () => esc((keeperOf() && S.settings.keeperNick) || (keeperOf() || {}).name || "");   // 管帳（維護試算表、算費用）的人
   const bkName = () => esc(S.settings.bookerNick || "");   // 向館方租借場地的人
   const vpName = () => (venuePayerOf() && S.settings.vpNick) || (venuePayerOf() || {}).name || "負責場地的人";
 
@@ -807,8 +807,8 @@ body.has-save #toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
     // 三、分工
     const who = sec("people", "誰負責什麼？", `<ul>
       <li><strong>${bk}：</strong>聯繫場館，每月 15 日照大家的出席訂場地。</li>
-      ${kpName() && kpName() !== tr ? `<li><strong>${kpName()}：</strong>管帳，維護試算表、算每人費用、記誰付了。</li>
-      <li><strong>${tr}：</strong>收錢，大家的場地費和教練費都轉給${tr}，由${tr}付館方和${cn}。</li>` : `<li><strong>${tr}：</strong>維護試算表、算每人費用，收場地費和教練費，付館方和${cn}。</li>`}
+      ${kpName() && kpName() !== tr ? `<li><strong>${kpName()}：</strong>管帳，維護試算表、算每人費用。</li>
+      <li><strong>${tr}：</strong>收錢，大家的場地費和教練費都轉給${tr}；${tr}記誰付了（試算表勾「已付款」或收費日期），再付館方和${cn}。</li>` : `<li><strong>${tr}：</strong>維護試算表、算每人費用，收場地費和教練費，付館方和${cn}。</li>`}
     </ul>`);
     // 四、羽球
     const ball = sec("sheet", "羽球怎麼買？", `<ul>
